@@ -26,7 +26,7 @@ https://github.com/user-attachments/assets/7c96b465-9df7-45f4-8053-bf03e58386d3
 Choose your path:
 
 - **Colab**: https://colab.research.google.com/drive/1eRTPn37ltBbYsISy9Aw2NuI2Aq5CQrD9?usp=sharing
-- **PAI-DSW**: https://gallery.pai-ml.com/#/preview/deepLearning/nlp/llama_factory
+- **PAI-DSW**: [Llama3 Example](https://gallery.pai-ml.com/#/preview/deepLearning/nlp/llama_factory) | [Qwen2-VL Example](https://gallery.pai-ml.com/#/preview/deepLearning/nlp/llama_factory_qwen2vl)
 - **Local machine**: Please refer to [usage](#getting-started)
 - **Documentation (WIP)**: https://llamafactory.readthedocs.io/zh-cn/latest/
 
@@ -183,8 +183,7 @@ Compared to ChatGLM's [P-Tuning](https://github.com/THUDM/ChatGLM2-6B/tree/main/
 | [PaliGemma](https://huggingface.co/google)                        | 3B                               | paligemma |
 | [Phi-1.5/Phi-2](https://huggingface.co/microsoft)                 | 1.3B/2.7B                        | -         |
 | [Phi-3](https://huggingface.co/microsoft)                         | 4B/7B/14B                        | phi       |
-| [Qwen/Qwen1.5/Qwen2 (Code/Math/MoE)](https://huggingface.co/Qwen) | 0.5B/1.5B/4B/7B/14B/32B/72B/110B | qwen      |
-| [Qwen2.5 (Code/Math)](https://huggingface.co/Qwen)                | 0.5B/1.5B/3B/7B/14B/32B/72B      | qwen      |
+| [Qwen (1-2.5) (Code/Math/MoE)](https://huggingface.co/Qwen)       | 0.5B/1.5B/3B/7B/14B/32B/72B/110B | qwen      |
 | [Qwen2-VL](https://huggingface.co/Qwen)                           | 2B/7B/72B                        | qwen2_vl  |
 | [StarCoder 2](https://huggingface.co/bigcode)                     | 3B/7B/15B                        | -         |
 | [XVERSE](https://huggingface.co/xverse)                           | 7B/13B/65B                       | xverse    |
