@@ -159,9 +159,10 @@ huggingface-cli login
 > 此步骤为必需。
 
 ```bash
-git clone --depth 1 https://github.com/hiyouga/LLaMA-Factory.git
-cd LLaMA-Factory
-pip install -e ".[torch,metrics]"
+$ python -m venv env
+$ source env/bin/activate
+$ pip install --upgrade pip -i https://pypi.tuna.tsinghua.edu.cn/simple/
+$ pip install -e ".[torch,metrics,modelscope]" -i https://pypi.tuna.tsinghua.edu.cn/simple/
 ```
 
 可选的额外依赖项：torch、torch-npu、metrics、deepspeed、liger-kernel、bitsandbytes、hqq、eetq、gptq、awq、aqlm、vllm、galore、badam、adam-mini、qwen、modelscope、openmind、quality
@@ -181,7 +182,7 @@ pip install -e ".[torch,metrics]"
 下面三行命令分别对 Llama3-8B-Instruct 模型进行 LoRA **微调**、**推理**和**合并**。
 
 ```bash
-llamafactory-cli train examples/train_lora/llama3_lora_sft.yaml
+CUDA_VISIBLE_DEVICES=0 llamafactory-cli train examples/train_lora/llama3_lora_sft.yaml
 llamafactory-cli chat examples/inference/llama3_lora_sft.yaml
 llamafactory-cli export examples/merge_lora/llama3_lora_sft.yaml
 ```
