@@ -16,7 +16,7 @@
 #### （增量）预训练
 
 ```bash
-llamafactory-cli train examples/train_lora/llama3_lora_pretrain.yaml
+CUDA_VISIBLE_DEVICES=0 llamafactory-cli train examples/train_lora/llama3_lora_pretrain.yaml
 ```
 
 #### 指令监督微调
