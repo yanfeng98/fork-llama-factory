@@ -171,3 +171,5 @@ config/
 saves/
 output/
 wandb/
+
+test.py

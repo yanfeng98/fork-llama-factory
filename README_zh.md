@@ -162,7 +162,7 @@ huggingface-cli login
 $ python -m venv env
 $ source env/bin/activate
 $ pip install --upgrade pip -i https://pypi.tuna.tsinghua.edu.cn/simple/
-$ pip install -e ".[torch,metrics,modelscope]" -i https://pypi.tuna.tsinghua.edu.cn/simple/
+$ pip install -e ".[torch,metrics,deepspeed,modelscope]" -i https://pypi.tuna.tsinghua.edu.cn/simple/
 ```
 
 可选的额外依赖项：torch、torch-npu、metrics、deepspeed、liger-kernel、bitsandbytes、hqq、eetq、gptq、awq、aqlm、vllm、galore、badam、adam-mini、qwen、modelscope、openmind、quality
