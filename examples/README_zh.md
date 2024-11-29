@@ -1,7 +1,3 @@
-我们提供了多样化的大模型微调示例脚本。
-
-请确保在 `LLaMA-Factory` 目录下执行下述命令。
-
 ## 目录
 
 - [LoRA 微调](#lora-微调)
@@ -11,7 +7,7 @@
 - [推理 LoRA 模型](#推理-lora-模型)
 - [杂项](#杂项)
 
-使用 `CUDA_VISIBLE_DEVICES`（GPU）或 `ASCEND_RT_VISIBLE_DEVICES`（NPU）选择计算设备。
+使用 `CUDA_VISIBLE_DEVICES`（GPU）选择计算设备。
 
 ## 示例
 
@@ -29,61 +25,12 @@ llamafactory-cli train examples/train_lora/llama3_lora_pretrain.yaml
 llamafactory-cli train examples/train_lora/llama3_lora_sft.yaml
 ```
 
-#### 多模态指令监督微调
-
-```bash
-llamafactory-cli train examples/train_lora/llava1_5_lora_sft.yaml
-llamafactory-cli train examples/train_lora/qwen2vl_lora_sft.yaml
-```
-
-#### DPO/ORPO/SimPO 训练
-
-```bash
-llamafactory-cli train examples/train_lora/llama3_lora_dpo.yaml
-```
-
-#### 多模态 DPO/ORPO/SimPO 训练
-
-```bash
-llamafactory-cli train examples/train_lora/qwen2vl_lora_dpo.yaml
-```
-
-#### 奖励模型训练
-
-```bash
-llamafactory-cli train examples/train_lora/llama3_lora_reward.yaml
-```
-
-#### PPO 训练
-
-```bash
-llamafactory-cli train examples/train_lora/llama3_lora_ppo.yaml
-```
-
-#### KTO 训练
-
-```bash
-llamafactory-cli train examples/train_lora/llama3_lora_kto.yaml
-```
-
 #### 预处理数据集
 
 对于大数据集有帮助，在配置中使用 `tokenized_path` 以加载预处理后的数据集。
 
 ```bash
 llamafactory-cli train examples/train_lora/llama3_preprocess.yaml
-```
-
-#### 在 MMLU/CMMLU/C-Eval 上评估
-
-```bash
-llamafactory-cli eval examples/train_lora/llama3_lora_eval.yaml
-```
-
-#### 批量预测并计算 BLEU 和 ROUGE 分数
-
-```bash
-llamafactory-cli train examples/train_lora/llama3_lora_predict.yaml
 ```
 
 #### 多机指令监督微调
@@ -140,18 +87,6 @@ FORCE_TORCHRUN=1 NNODES=2 RANK=0 MASTER_ADDR=192.168.0.1 MASTER_PORT=29500 llama
 FORCE_TORCHRUN=1 NNODES=2 RANK=1 MASTER_ADDR=192.168.0.1 MASTER_PORT=29500 llamafactory-cli train examples/train_full/llama3_full_sft_ds3.yaml
 ```
 
-#### 多模态指令监督微调
-
-```bash
-FORCE_TORCHRUN=1 llamafactory-cli train examples/train_full/qwen2vl_full_sft.yaml
-```
-
-#### 批量预测并计算 BLEU 和 ROUGE 分数
-
-```bash
-llamafactory-cli train examples/train_full/llama3_full_predict.yaml
-```
-
 ### 合并 LoRA 适配器与模型量化
 
 #### 合并 LoRA 适配器
@@ -166,26 +101,6 @@ llamafactory-cli export examples/merge_lora/llama3_lora_sft.yaml
 
 ```bash
 llamafactory-cli export examples/merge_lora/llama3_gptq.yaml
-```
-
-### 推理 LoRA 模型
-
-#### 使用命令行接口
-
-```bash
-llamafactory-cli chat examples/inference/llama3_lora_sft.yaml
-```
-
-#### 使用浏览器界面
-
-```bash
-llamafactory-cli webchat examples/inference/llama3_lora_sft.yaml
-```
-
-#### 启动 OpenAI 风格 API
-
-```bash
-llamafactory-cli api examples/inference/llama3_lora_sft.yaml
 ```
 
 ### 杂项
