@@ -16,7 +16,7 @@
 #### （增量）预训练
 
 ```bash
-CUDA_VISIBLE_DEVICES=0 llamafactory-cli train examples/train_lora/llama3_lora_pretrain.yaml
+CUDA_VISIBLE_DEVICES=0 llamafactory-cli train examples/train_lora/qwen_lora_pt.yaml
 ```
 
 #### 指令监督微调
@@ -94,7 +94,7 @@ FORCE_TORCHRUN=1 NNODES=2 RANK=1 MASTER_ADDR=192.168.0.1 MASTER_PORT=29500 llama
 注：请勿使用量化后的模型或 `quantization_bit` 参数来合并 LoRA 适配器。
 
 ```bash
-llamafactory-cli export examples/merge_lora/llama3_lora_sft.yaml
+llamafactory-cli export examples/merge_lora/qwen_lora_pt.yaml
 ```
 
 #### 使用 AutoGPTQ 量化模型

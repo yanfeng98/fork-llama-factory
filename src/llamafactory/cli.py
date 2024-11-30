@@ -1,10 +1,10 @@
-# Copyright 2024 the LlamaFactory team.
+# Copyright 2024 the luyanfeng
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
+# Licensed under the MIT License, (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+#     http://opensource.org/licenses/MIT
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -19,7 +19,6 @@ import sys
 from enum import Enum, unique
 
 from . import launcher
-from .api.app import run_api
 from .chat.chat_model import run_chat
 from .eval.evaluator import run_eval
 from .extras import logging
@@ -33,13 +32,8 @@ USAGE = (
     "-" * 70
     + "\n"
     + "| Usage:                                                             |\n"
-    + "|   llamafactory-cli api -h: launch an OpenAI-style API server       |\n"
-    + "|   llamafactory-cli chat -h: launch a chat interface in CLI         |\n"
-    + "|   llamafactory-cli eval -h: evaluate models                        |\n"
     + "|   llamafactory-cli export -h: merge LoRA adapters and export model |\n"
     + "|   llamafactory-cli train -h: train models                          |\n"
-    + "|   llamafactory-cli webchat -h: launch a chat interface in Web UI   |\n"
-    + "|   llamafactory-cli webui: launch LlamaBoard                        |\n"
     + "|   llamafactory-cli version: show version info                      |\n"
     + "-" * 70
 )
@@ -61,7 +55,6 @@ logger = logging.get_logger(__name__)
 
 @unique
 class Command(str, Enum):
-    API = "api"
     CHAT = "chat"
     ENV = "env"
     EVAL = "eval"
@@ -75,9 +68,7 @@ class Command(str, Enum):
 
 def main():
     command = sys.argv.pop(1) if len(sys.argv) != 1 else Command.HELP
-    if command == Command.API:
-        run_api()
-    elif command == Command.CHAT:
+    if command == Command.CHAT:
         run_chat()
     elif command == Command.ENV:
         print_env()
