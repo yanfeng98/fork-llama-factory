@@ -19,13 +19,10 @@ import sys
 from enum import Enum, unique
 
 from . import launcher
-from .chat.chat_model import run_chat
-from .eval.evaluator import run_eval
 from .extras import logging
 from .extras.env import VERSION, print_env
 from .extras.misc import get_device_count
 from .train.tuner import export_model, run_exp
-from .webui.interface import run_web_demo, run_web_ui
 
 
 USAGE = (
@@ -55,12 +52,9 @@ logger = logging.get_logger(__name__)
 
 @unique
 class Command(str, Enum):
-    CHAT = "chat"
     ENV = "env"
-    EVAL = "eval"
     EXPORT = "export"
     TRAIN = "train"
-    WEBDEMO = "webchat"
     WEBUI = "webui"
     VER = "version"
     HELP = "help"
@@ -68,12 +62,8 @@ class Command(str, Enum):
 
 def main():
     command = sys.argv.pop(1) if len(sys.argv) != 1 else Command.HELP
-    if command == Command.CHAT:
-        run_chat()
-    elif command == Command.ENV:
+    if command == Command.ENV:
         print_env()
-    elif command == Command.EVAL:
-        run_eval()
     elif command == Command.EXPORT:
         export_model()
     elif command == Command.TRAIN:
@@ -101,10 +91,6 @@ def main():
             sys.exit(process.returncode)
         else:
             run_exp()
-    elif command == Command.WEBDEMO:
-        run_web_demo()
-    elif command == Command.WEBUI:
-        run_web_ui()
     elif command == Command.VER:
         print(WELCOME)
     elif command == Command.HELP:
