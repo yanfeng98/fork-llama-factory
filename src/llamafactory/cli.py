@@ -29,9 +29,11 @@ USAGE = (
     "-" * 70
     + "\n"
     + "| Usage:                                                             |\n"
-    + "|   llamafactory-cli export -h: merge LoRA adapters and export model |\n"
-    + "|   llamafactory-cli train -h: train models                          |\n"
+    + "|   llamafactory-cli help: show this message                         |\n"
     + "|   llamafactory-cli version: show version info                      |\n"
+    + "|   llamafactory-cli env -h: show environment info                   |\n"
+    + "|   llamafactory-cli train -h: train models                          |\n"
+    + "|   llamafactory-cli export -h: merge LoRA adapters and export model |\n"
     + "-" * 70
 )
 
@@ -52,12 +54,11 @@ logger = logging.get_logger(__name__)
 
 @unique
 class Command(str, Enum):
-    ENV = "env"
-    EXPORT = "export"
-    TRAIN = "train"
-    WEBUI = "webui"
-    VER = "version"
     HELP = "help"
+    VER = "version"
+    ENV = "env"
+    TRAIN = "train"
+    EXPORT = "export"
 
 
 def main():
