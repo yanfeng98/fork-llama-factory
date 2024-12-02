@@ -53,30 +53,6 @@ class QuantizationArguments:
 
 
 @dataclass
-class ProcessorArguments:
-    r"""
-    Arguments pertaining to the image processor.
-    """
-
-    image_resolution: int = field(
-        default=512 * 512,
-        metadata={"help": "Keeps the number of pixels of image below this resolution."},
-    )
-    video_resolution: int = field(
-        default=128 * 128,
-        metadata={"help": "Keeps the number of pixels of video below this resolution."},
-    )
-    video_fps: float = field(
-        default=2.0,
-        metadata={"help": "The frames to sample per second for video inputs."},
-    )
-    video_maxlen: int = field(
-        default=64,
-        metadata={"help": "The maximum number of sampled frames for video inputs."},
-    )
-
-
-@dataclass
 class ExportArguments:
     r"""
     Arguments pertaining to the model export.
@@ -120,7 +96,7 @@ class ExportArguments:
     )
 
 @dataclass
-class ModelArguments(QuantizationArguments, ProcessorArguments, ExportArguments):
+class ModelArguments(QuantizationArguments, ExportArguments):
     r"""
     Arguments pertaining to which model/config/tokenizer we are going to fine-tune or infer.
     """

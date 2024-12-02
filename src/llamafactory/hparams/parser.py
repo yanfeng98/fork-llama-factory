@@ -151,8 +151,6 @@ def get_train_args(args: Optional[Dict[str, Any]] = None) -> _TRAIN_CLS:
         _set_transformers_logging()
 
     # Check arguments
-    if finetuning_args.stage != "pt" and data_args.template is None:
-        raise ValueError("Please specify which `template` to use.")
 
     if finetuning_args.stage != "sft":
         if training_args.predict_with_generate:
@@ -166,22 +164,6 @@ def get_train_args(args: Optional[Dict[str, Any]] = None) -> _TRAIN_CLS:
 
     if finetuning_args.stage == "sft" and training_args.do_predict and not training_args.predict_with_generate:
         raise ValueError("Please enable `predict_with_generate` to save model predictions.")
-
-    if finetuning_args.stage in ["rm", "ppo"] and training_args.load_best_model_at_end:
-        raise ValueError("RM and PPO stages do not support `load_best_model_at_end`.")
-
-    if finetuning_args.stage == "ppo":
-        if not training_args.do_train:
-            raise ValueError("PPO training does not support evaluation, use the SFT stage to evaluate models.")
-
-        if model_args.shift_attn:
-            raise ValueError("PPO training is incompatible with S^2-Attn.")
-
-        if finetuning_args.reward_model_type == "lora" and model_args.use_unsloth:
-            raise ValueError("Unsloth does not support lora reward model.")
-
-        if training_args.report_to and training_args.report_to[0] not in ["wandb", "tensorboard"]:
-            raise ValueError("PPO only accepts wandb or tensorboard logger.")
 
     if training_args.parallel_mode == ParallelMode.NOT_DISTRIBUTED:
         raise ValueError("Please launch distributed training with `llamafactory-cli` or `torchrun`.")

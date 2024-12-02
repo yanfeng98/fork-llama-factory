@@ -125,91 +125,6 @@ class LoraArguments:
         metadata={"help": "Whether or not to create a new adapter with randomly initialized weight."},
     )
 
-
-@dataclass
-class RLHFArguments:
-    r"""
-    Arguments pertaining to the PPO, DPO and KTO training.
-    """
-
-    pref_beta: float = field(
-        default=0.1,
-        metadata={"help": "The beta parameter in the preference loss."},
-    )
-    pref_ftx: float = field(
-        default=0.0,
-        metadata={"help": "The supervised fine-tuning loss coefficient in DPO training."},
-    )
-    pref_loss: Literal["sigmoid", "hinge", "ipo", "kto_pair", "orpo", "simpo"] = field(
-        default="sigmoid",
-        metadata={"help": "The type of DPO loss to use."},
-    )
-    dpo_label_smoothing: float = field(
-        default=0.0,
-        metadata={"help": "The robust DPO label smoothing parameter in cDPO that should be between 0 and 0.5."},
-    )
-    kto_chosen_weight: float = field(
-        default=1.0,
-        metadata={"help": "The weight factor of the desirable losses in KTO training."},
-    )
-    kto_rejected_weight: float = field(
-        default=1.0,
-        metadata={"help": "The weight factor of the undesirable losses in KTO training."},
-    )
-    simpo_gamma: float = field(
-        default=0.5,
-        metadata={"help": "The target reward margin term in SimPO loss."},
-    )
-    ppo_buffer_size: int = field(
-        default=1,
-        metadata={"help": "The number of mini-batches to make experience buffer in a PPO optimization step."},
-    )
-    ppo_epochs: int = field(
-        default=4,
-        metadata={"help": "The number of epochs to perform in a PPO optimization step."},
-    )
-    ppo_score_norm: bool = field(
-        default=False,
-        metadata={"help": "Use score normalization in PPO training."},
-    )
-    ppo_target: float = field(
-        default=6.0,
-        metadata={"help": "Target KL value for adaptive KL control in PPO training."},
-    )
-    ppo_whiten_rewards: bool = field(
-        default=False,
-        metadata={"help": "Whiten the rewards before compute advantages in PPO training."},
-    )
-    ref_model: Optional[str] = field(
-        default=None,
-        metadata={"help": "Path to the reference model used for the PPO or DPO training."},
-    )
-    ref_model_adapters: Optional[str] = field(
-        default=None,
-        metadata={"help": "Path to the adapters of the reference model."},
-    )
-    ref_model_quantization_bit: Optional[int] = field(
-        default=None,
-        metadata={"help": "The number of bits to quantize the reference model."},
-    )
-    reward_model: Optional[str] = field(
-        default=None,
-        metadata={"help": "Path to the reward model used for the PPO training."},
-    )
-    reward_model_adapters: Optional[str] = field(
-        default=None,
-        metadata={"help": "Path to the adapters of the reward model."},
-    )
-    reward_model_quantization_bit: Optional[int] = field(
-        default=None,
-        metadata={"help": "The number of bits to quantize the reward model."},
-    )
-    reward_model_type: Literal["lora", "full", "api"] = field(
-        default="lora",
-        metadata={"help": "The type of the reward model in PPO training. Lora model only supports lora training."},
-    )
-
-
 @dataclass
 class GaloreArguments:
     r"""
@@ -305,7 +220,7 @@ class BAdamArgument:
 
 
 @dataclass
-class FinetuningArguments(FreezeArguments, LoraArguments, RLHFArguments, GaloreArguments, BAdamArgument):
+class FinetuningArguments(FreezeArguments, LoraArguments, GaloreArguments, BAdamArgument):
     r"""
     Arguments pertaining to which techniques we are going to fine-tuning with.
     """
@@ -367,8 +282,6 @@ class FinetuningArguments(FreezeArguments, LoraArguments, RLHFArguments, GaloreA
         self.use_ref_model = self.stage == "dpo" and self.pref_loss not in ["orpo", "simpo"]
 
         assert self.finetuning_type in ["lora", "freeze", "full"], "Invalid fine-tuning method."
-        assert self.ref_model_quantization_bit in [None, 8, 4], "We only accept 4-bit or 8-bit quantization."
-        assert self.reward_model_quantization_bit in [None, 8, 4], "We only accept 4-bit or 8-bit quantization."
 
         if self.stage == "ppo" and self.reward_model is None:
             raise ValueError("`reward_model` is necessary for PPO training.")
