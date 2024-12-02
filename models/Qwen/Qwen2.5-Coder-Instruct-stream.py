@@ -2,7 +2,7 @@ from transformers import AutoTokenizer, AutoModelForCausalLM
 from transformers import TextIteratorStreamer
 from threading import Thread
 
-model_name = "Qwen/Qwen2.5-Coder-0.5B-Instruct"
+model_name = "Qwen/Qwen2.5-Coder-7B-Instruct"
 
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 model = AutoModelForCausalLM.from_pretrained(
