@@ -70,11 +70,4 @@ def print_env() -> None:
     except Exception:
         pass
 
-    try:
-        import vllm
-
-        info["vLLM version"] = vllm.__version__
-    except Exception:
-        pass
-
     print("\n" + "\n".join([f"- {key}: {value}" for key, value in info.items()]) + "\n")

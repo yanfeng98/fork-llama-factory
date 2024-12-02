@@ -1,13 +1,10 @@
-# Copyright 2024 HuggingFace Inc. and the LlamaFactory team.
+# Copyright 2024 luyanfeng
 #
-# This code is inspired by the HuggingFace's transformers library.
-# https://github.com/huggingface/transformers/blob/v4.40.0/examples/pytorch/language-modeling/run_clm.py
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
+# Licensed under the MIT License, (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+#     http://opensource.org/licenses/MIT
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -32,7 +29,6 @@ from ..extras import logging
 from ..extras.constants import CHECKPOINT_NAMES
 from ..extras.misc import check_dependencies, get_current_device
 from .data_args import DataArguments
-from .evaluation_args import EvaluationArguments
 from .finetuning_args import FinetuningArguments
 from .generating_args import GeneratingArguments
 from .model_args import ModelArguments
@@ -48,8 +44,6 @@ _TRAIN_ARGS = [ModelArguments, DataArguments, Seq2SeqTrainingArguments, Finetuni
 _TRAIN_CLS = Tuple[ModelArguments, DataArguments, Seq2SeqTrainingArguments, FinetuningArguments, GeneratingArguments]
 _INFER_ARGS = [ModelArguments, DataArguments, FinetuningArguments, GeneratingArguments]
 _INFER_CLS = Tuple[ModelArguments, DataArguments, FinetuningArguments, GeneratingArguments]
-_EVAL_ARGS = [ModelArguments, DataArguments, EvaluationArguments, FinetuningArguments]
-_EVAL_CLS = Tuple[ModelArguments, DataArguments, EvaluationArguments, FinetuningArguments]
 
 
 def _parse_args(parser: "HfArgumentParser", args: Optional[Dict[str, Any]] = None) -> Tuple[Any]:
@@ -121,9 +115,6 @@ def _check_extra_dependencies(
     if model_args.mixture_of_depths is not None:
         require_version("mixture-of-depth>=1.1.6", "To fix: pip install mixture-of-depth>=1.1.6")
 
-    if model_args.infer_backend == "vllm":
-        require_version("vllm>=0.4.3,<0.6.4", "To fix: pip install vllm>=0.4.3,<0.6.4")
-
     if finetuning_args.use_galore:
         require_version("galore_torch", "To fix: pip install galore_torch")
 
@@ -149,11 +140,6 @@ def _parse_train_args(args: Optional[Dict[str, Any]] = None) -> _TRAIN_CLS:
 
 def _parse_infer_args(args: Optional[Dict[str, Any]] = None) -> _INFER_CLS:
     parser = HfArgumentParser(_INFER_ARGS)
-    return _parse_args(parser, args)
-
-
-def _parse_eval_args(args: Optional[Dict[str, Any]] = None) -> _EVAL_CLS:
-    parser = HfArgumentParser(_EVAL_ARGS)
     return _parse_args(parser, args)
 
 
@@ -252,9 +238,6 @@ def get_train_args(args: Optional[Dict[str, Any]] = None) -> _TRAIN_CLS:
 
     if finetuning_args.use_galore and training_args.deepspeed is not None:
         raise ValueError("GaLore is incompatible with DeepSpeed yet.")
-
-    if model_args.infer_backend == "vllm":
-        raise ValueError("vLLM backend is only available for API, CLI and Web.")
 
     if model_args.use_unsloth and is_deepspeed_zero3_enabled():
         raise ValueError("Unsloth is incompatible with DeepSpeed ZeRO-3.")
@@ -375,19 +358,6 @@ def get_infer_args(args: Optional[Dict[str, Any]] = None) -> _INFER_CLS:
     if data_args.template is None:
         raise ValueError("Please specify which `template` to use.")
 
-    if model_args.infer_backend == "vllm":
-        if finetuning_args.stage != "sft":
-            raise ValueError("vLLM engine only supports auto-regressive models.")
-
-        if model_args.quantization_bit is not None:
-            raise ValueError("vLLM engine does not support bnb quantization (GPTQ and AWQ are supported).")
-
-        if model_args.rope_scaling is not None:
-            raise ValueError("vLLM engine does not support RoPE scaling.")
-
-        if model_args.adapter_name_or_path is not None and len(model_args.adapter_name_or_path) != 1:
-            raise ValueError("vLLM only accepts a single adapter. Merge them first.")
-
     _verify_model_args(model_args, data_args, finetuning_args)
     _check_extra_dependencies(model_args, finetuning_args)
 
@@ -398,24 +368,3 @@ def get_infer_args(args: Optional[Dict[str, Any]] = None) -> _INFER_CLS:
         model_args.device_map = "auto"
 
     return model_args, data_args, finetuning_args, generating_args
-
-
-def get_eval_args(args: Optional[Dict[str, Any]] = None) -> _EVAL_CLS:
-    model_args, data_args, eval_args, finetuning_args = _parse_eval_args(args)
-
-    _set_transformers_logging()
-
-    if data_args.template is None:
-        raise ValueError("Please specify which `template` to use.")
-
-    if model_args.infer_backend == "vllm":
-        raise ValueError("vLLM backend is only available for API, CLI and Web.")
-
-    _verify_model_args(model_args, data_args, finetuning_args)
-    _check_extra_dependencies(model_args, finetuning_args)
-
-    model_args.device_map = "auto"
-
-    transformers.set_seed(eval_args.seed)
-
-    return model_args, data_args, eval_args, finetuning_args

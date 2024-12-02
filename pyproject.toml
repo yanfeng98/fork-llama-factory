@@ -17,7 +17,6 @@ known-first-party = ["llamafactory"]
 known-third-party = [
     "accelerate",
     "datasets",
-    "gradio",
     "numpy",
     "peft",
     "torch",

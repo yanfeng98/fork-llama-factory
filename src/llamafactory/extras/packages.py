@@ -28,6 +28,15 @@ if TYPE_CHECKING:
 
 
 def _is_package_available(name: str) -> bool:
+    """
+    检查指定包是否可用。
+    
+    Args:
+        name (str): 要检查的包名。
+    
+    Returns:
+        bool: 如果包可用，则返回True；否则返回False。
+    """
     return importlib.util.find_spec(name) is not None
 
 
@@ -42,16 +51,8 @@ def is_pyav_available():
     return _is_package_available("av")
 
 
-def is_fastapi_available():
-    return _is_package_available("fastapi")
-
-
 def is_galore_available():
     return _is_package_available("galore_torch")
-
-
-def is_gradio_available():
-    return _is_package_available("gradio")
 
 
 def is_matplotlib_available():
@@ -86,7 +87,3 @@ def is_transformers_version_equal_to_4_46():
 
 def is_uvicorn_available():
     return _is_package_available("uvicorn")
-
-
-def is_vllm_available():
-    return _is_package_available("vllm")

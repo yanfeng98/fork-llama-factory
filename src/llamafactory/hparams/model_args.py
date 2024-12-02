@@ -119,37 +119,8 @@ class ExportArguments:
         metadata={"help": "The name of the repository if push the model to the Hugging Face hub."},
     )
 
-
 @dataclass
-class VllmArguments:
-    r"""
-    Arguments pertaining to the vLLM worker.
-    """
-
-    vllm_maxlen: int = field(
-        default=4096,
-        metadata={"help": "Maximum sequence (prompt + response) length of the vLLM engine."},
-    )
-    vllm_gpu_util: float = field(
-        default=0.9,
-        metadata={"help": "The fraction of GPU memory in (0,1) to be used for the vLLM engine."},
-    )
-    vllm_enforce_eager: bool = field(
-        default=False,
-        metadata={"help": "Whether or not to disable CUDA graph in the vLLM engine."},
-    )
-    vllm_max_lora_rank: int = field(
-        default=32,
-        metadata={"help": "Maximum rank of all LoRAs in the vLLM engine."},
-    )
-    vllm_config: Optional[Union[dict, str]] = field(
-        default=None,
-        metadata={"help": "Config to initialize the vllm engine. Please use JSON strings."},
-    )
-
-
-@dataclass
-class ModelArguments(QuantizationArguments, ProcessorArguments, ExportArguments, VllmArguments):
+class ModelArguments(QuantizationArguments, ProcessorArguments, ExportArguments):
     r"""
     Arguments pertaining to which model/config/tokenizer we are going to fine-tune or infer.
     """
@@ -249,7 +220,7 @@ class ModelArguments(QuantizationArguments, ProcessorArguments, ExportArguments,
         default=False,
         metadata={"help": "Whether or not to randomly initialize the model weights."},
     )
-    infer_backend: Literal["huggingface", "vllm"] = field(
+    infer_backend: Literal["huggingface"] = field(
         default="huggingface",
         metadata={"help": "Backend engine used at inference."},
     )
@@ -317,9 +288,6 @@ class ModelArguments(QuantizationArguments, ProcessorArguments, ExportArguments,
 
         if self.export_quantization_bit is not None and self.export_quantization_dataset is None:
             raise ValueError("Quantization dataset is necessary for exporting.")
-
-        if isinstance(self.vllm_config, str) and self.vllm_config.startswith("{"):
-            self.vllm_config = _convert_str_dict(json.loads(self.vllm_config))
 
     @classmethod
     def copyfrom(cls, source: "Self", **kwargs) -> "Self":
