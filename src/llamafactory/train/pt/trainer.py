@@ -47,12 +47,6 @@ class CustomTrainer(Trainer):
         if finetuning_args.pissa_convert:
             self.add_callback(PissaConvertCallback)
 
-        if finetuning_args.use_badam:
-            from badam import BAdamCallback, clip_grad_norm_old_version  # type: ignore
-
-            self.accelerator.clip_grad_norm_ = MethodType(clip_grad_norm_old_version, self.accelerator)
-            self.add_callback(BAdamCallback)
-
     @override
     def create_optimizer(self) -> "torch.optim.Optimizer":
         if self.optimizer is None:

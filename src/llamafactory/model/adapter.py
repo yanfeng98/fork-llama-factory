@@ -283,8 +283,8 @@ def init_adapter(
     cast_trainable_params_to_fp32 = False
     if not is_trainable:
         pass
-    elif finetuning_args.pure_bf16 or finetuning_args.use_badam:
-        logger.info_rank0("Pure bf16 / BAdam detected, remaining trainable params in half precision.")
+    elif finetuning_args.pure_bf16:
+        logger.info_rank0("Pure bf16 detected, remaining trainable params in half precision.")
     elif model_args.quantization_bit is None and (is_deepspeed_zero3_enabled() or is_fsdp_enabled()):
         logger.info_rank0("ZeRO3 / FSDP detected, remaining trainable params in float32.")
     else:

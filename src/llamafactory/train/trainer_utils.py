@@ -184,91 +184,6 @@ def _get_decay_parameter_names(model: "PreTrainedModel") -> List[str]:
     decay_parameters = [name for name in decay_parameters if "bias" not in name]
     return decay_parameters
 
-
-def _create_galore_optimizer(
-    model: "PreTrainedModel",
-    training_args: "Seq2SeqTrainingArguments",
-    finetuning_args: "FinetuningArguments",
-) -> "torch.optim.Optimizer":
-    if len(finetuning_args.galore_target) == 1 and finetuning_args.galore_target[0] == "all":
-        galore_targets = find_all_linear_modules(model, finetuning_args.freeze_vision_tower)
-    else:
-        galore_targets = finetuning_args.galore_target
-
-    galore_params: List["torch.nn.Parameter"] = []
-    for name, module in model.named_modules():
-        if isinstance(module, torch.nn.Linear) and any(target in name for target in galore_targets):
-            for param in module.parameters():
-                if param.requires_grad and len(param.shape) > 1:
-                    galore_params.append(param)
-
-    galore_kwargs = {
-        "rank": finetuning_args.galore_rank,
-        "update_proj_gap": finetuning_args.galore_update_interval,
-        "scale": finetuning_args.galore_scale,
-        "proj_type": finetuning_args.galore_proj_type,
-    }
-
-    id_galore_params = {id(param) for param in galore_params}
-    decay_params, nodecay_params = [], []  # they are non-galore parameters
-    trainable_params: List["torch.nn.Parameter"] = []  # galore_params + decay_params + nodecay_params
-    decay_param_names = _get_decay_parameter_names(model)
-    for name, param in model.named_parameters():
-        if param.requires_grad:
-            trainable_params.append(param)
-            if id(param) not in id_galore_params:
-                if name in decay_param_names:
-                    decay_params.append(param)
-                else:
-                    nodecay_params.append(param)
-
-    _, optim_kwargs = Trainer.get_optimizer_cls_and_kwargs(training_args)
-
-    if training_args.optim == "adamw_torch":
-        optim_class = GaLoreAdamW
-    elif training_args.optim in ["adamw_bnb_8bit", "adamw_8bit", "paged_adamw_8bit"]:
-        optim_class = GaLoreAdamW8bit
-    elif training_args.optim == "adafactor":
-        optim_class = GaLoreAdafactor
-    else:
-        raise NotImplementedError(f"Unknow optim: {training_args.optim}")
-
-    if finetuning_args.galore_layerwise:
-        if training_args.gradient_accumulation_steps != 1:
-            raise ValueError("Per-layer GaLore does not support gradient accumulation.")
-
-        optimizer_dict: Dict["torch.Tensor", "torch.optim.Optimizer"] = {}
-        for param in nodecay_params:
-            param_groups = [dict(params=[param], weight_decay=0.0)]
-            optimizer_dict[param] = optim_class(param_groups, **optim_kwargs)
-        for param in decay_params:
-            param_groups = [dict(params=[param], weight_decay=training_args.weight_decay)]
-            optimizer_dict[param] = optim_class(param_groups, **optim_kwargs)
-        for param in galore_params:  # galore params have weight decay
-            param_groups = [dict(params=[param], weight_decay=training_args.weight_decay, **galore_kwargs)]
-            optimizer_dict[param] = optim_class(param_groups, **optim_kwargs)
-
-        def optimizer_hook(param: "torch.nn.Parameter"):
-            if param.grad is not None:
-                optimizer_dict[param].step()
-                optimizer_dict[param].zero_grad()
-
-        for param in trainable_params:
-            param.register_post_accumulate_grad_hook(optimizer_hook)
-
-        optimizer = DummyOptimizer(lr=training_args.learning_rate, optimizer_dict=optimizer_dict)
-    else:
-        param_groups = [
-            dict(params=nodecay_params, weight_decay=0.0),
-            dict(params=decay_params, weight_decay=training_args.weight_decay),
-            dict(params=galore_params, weight_decay=training_args.weight_decay, **galore_kwargs),
-        ]
-        optimizer = optim_class(param_groups, **optim_kwargs)
-
-    logger.info_rank0("Using GaLore optimizer, may cause hanging at the start of training, wait patiently.")
-    return optimizer
-
-
 def _create_loraplus_optimizer(
     model: "PreTrainedModel",
     training_args: "Seq2SeqTrainingArguments",
@@ -309,67 +224,6 @@ def _create_loraplus_optimizer(
     return optimizer
 
 
-def _create_badam_optimizer(
-    model: "PreTrainedModel",
-    training_args: "Seq2SeqTrainingArguments",
-    finetuning_args: "FinetuningArguments",
-) -> "torch.optim.Optimizer":
-    decay_params, nodecay_params = [], []
-    decay_param_names = _get_decay_parameter_names(model)
-    for name, param in model.named_parameters():
-        if param.requires_grad:
-            if name in decay_param_names:
-                decay_params.append(param)
-            else:
-                nodecay_params.append(param)
-
-    optim_class, optim_kwargs = Trainer.get_optimizer_cls_and_kwargs(training_args)
-    param_groups = [
-        dict(params=nodecay_params, weight_decay=0.0),
-        dict(params=decay_params, weight_decay=training_args.weight_decay),
-    ]
-
-    if finetuning_args.badam_mode == "layer":
-        from badam import BlockOptimizer
-
-        base_optimizer = optim_class(param_groups, **optim_kwargs)
-        optimizer = BlockOptimizer(
-            base_optimizer=base_optimizer,
-            named_parameters_list=list(model.named_parameters()),
-            block_prefix_list=None,
-            switch_block_every=finetuning_args.badam_switch_interval,
-            start_block=finetuning_args.badam_start_block,
-            switch_mode=finetuning_args.badam_switch_mode,
-            verbose=finetuning_args.badam_verbose,
-            ds_zero3_enabled=is_deepspeed_zero3_enabled(),
-        )
-        logger.info_rank0(
-            f"Using BAdam optimizer with layer-wise update, switch mode is {finetuning_args.badam_switch_mode}, "
-            f"switch block every {finetuning_args.badam_switch_interval} steps, "
-            f"default start block is {finetuning_args.badam_start_block}"
-        )
-
-    elif finetuning_args.badam_mode == "ratio":
-        from badam import BlockOptimizerRatio
-
-        assert finetuning_args.badam_update_ratio > 1e-6
-        optimizer = BlockOptimizerRatio(
-            param_groups=param_groups,
-            named_parameters_list=list(model.named_parameters()),
-            update_ratio=finetuning_args.badam_update_ratio,
-            mask_mode=finetuning_args.badam_mask_mode,
-            verbose=finetuning_args.badam_verbose,
-            include_embedding=False,
-            **optim_kwargs,
-        )
-        logger.info_rank0(
-            f"Using BAdam optimizer with ratio-based update, update ratio is {finetuning_args.badam_update_ratio}, "
-            f"mask mode is {finetuning_args.badam_mask_mode}"
-        )
-
-    return optimizer
-
-
 def _create_adam_mini_optimizer(
     model: "PreTrainedModel",
     training_args: "Seq2SeqTrainingArguments",
@@ -400,14 +254,9 @@ def create_custom_optimizer(
     training_args: "Seq2SeqTrainingArguments",
     finetuning_args: "FinetuningArguments",
 ) -> Optional["torch.optim.Optimizer"]:
-    if finetuning_args.use_galore:
-        return _create_galore_optimizer(model, training_args, finetuning_args)
 
     if finetuning_args.loraplus_lr_ratio is not None:
         return _create_loraplus_optimizer(model, training_args, finetuning_args)
-
-    if finetuning_args.use_badam:
-        return _create_badam_optimizer(model, training_args, finetuning_args)
 
     if finetuning_args.use_adam_mini:
         return _create_adam_mini_optimizer(model, training_args)

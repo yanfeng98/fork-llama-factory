@@ -115,12 +115,6 @@ def _check_extra_dependencies(
     if model_args.mixture_of_depths is not None:
         require_version("mixture-of-depth>=1.1.6", "To fix: pip install mixture-of-depth>=1.1.6")
 
-    if finetuning_args.use_galore:
-        require_version("galore_torch", "To fix: pip install galore_torch")
-
-    if finetuning_args.use_badam:
-        require_version("badam>=1.2.1", "To fix: pip install badam>=1.2.1")
-
     if finetuning_args.use_adam_mini:
         require_version("adam-mini", "To fix: pip install adam-mini")
 
@@ -205,22 +199,6 @@ def get_train_args(args: Optional[Dict[str, Any]] = None) -> _TRAIN_CLS:
         if is_deepspeed_zero3_enabled():
             raise ValueError("`pure_bf16` is incompatible with DeepSpeed ZeRO-3.")
 
-    if (
-        finetuning_args.use_galore
-        and finetuning_args.galore_layerwise
-        and training_args.parallel_mode == ParallelMode.DISTRIBUTED
-    ):
-        raise ValueError("Distributed training does not support layer-wise GaLore.")
-
-    if finetuning_args.use_badam and training_args.parallel_mode == ParallelMode.DISTRIBUTED:
-        if finetuning_args.badam_mode == "ratio":
-            raise ValueError("Radio-based BAdam does not yet support distributed training, use layer-wise BAdam.")
-        elif not is_deepspeed_zero3_enabled():
-            raise ValueError("Layer-wise BAdam only supports DeepSpeed ZeRO-3 training.")
-
-    if finetuning_args.use_galore and training_args.deepspeed is not None:
-        raise ValueError("GaLore is incompatible with DeepSpeed yet.")
-
     if model_args.use_unsloth and is_deepspeed_zero3_enabled():
         raise ValueError("Unsloth is incompatible with DeepSpeed ZeRO-3.")
 
@@ -247,11 +225,6 @@ def get_train_args(args: Optional[Dict[str, Any]] = None) -> _TRAIN_CLS:
 
     if training_args.do_train and (not training_args.fp16) and (not training_args.bf16):
         logger.warning_rank0("We recommend enable mixed precision training.")
-
-    if training_args.do_train and finetuning_args.use_galore and not finetuning_args.pure_bf16:
-        logger.warning_rank0(
-            "Using GaLore with mixed precision training may significantly increases GPU memory usage."
-        )
 
     if (not training_args.do_train) and model_args.quantization_bit is not None:
         logger.warning_rank0("Evaluating model in 4/8-bit mode may cause lower scores.")
