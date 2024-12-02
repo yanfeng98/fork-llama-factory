@@ -1,14 +1,3 @@
-![# LLaMA Factory](assets/logo.png)
-
-\[ [English](README.md) | 中文 \]
-
-**微调大模型可以像这样轻松…**
-
-选择你的打开方式：
-
-- **入门教程**：https://zhuanlan.zhihu.com/p/695287607
-- **框架文档**：https://llamafactory.readthedocs.io/zh-cn/latest/
-
 ## 模型
 
 | 模型名                                                            | 模型大小                          | Template         |
