@@ -1,13 +1,10 @@
-# Copyright 2024 HuggingFace Inc. and the LlamaFactory team.
+# Copyright 2024 luyanfeng
 #
-# This code is inspired by the HuggingFace's transformers library.
-# https://github.com/huggingface/transformers/blob/v4.40.0/src/transformers/commands/env.py
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
+# Licensed under the MIT License, (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+#     http://opensource.org/licenses/MIT
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -23,13 +20,26 @@ import peft
 import torch
 import transformers
 import trl
-from transformers.utils import is_torch_cuda_available, is_torch_npu_available
+from transformers.utils import is_torch_cuda_available
 
 
 VERSION = "0.9.2.dev0"
 
 
 def print_env() -> None:
+    """
+    打印当前环境信息。
+    
+    Args:
+        无参数。
+    
+    Returns:
+        无返回值。
+    
+    Raises:
+        无异常。
+    
+    """
     info = {
         "`llamafactory` version": VERSION,
         "Platform": platform.platform(),
@@ -45,11 +55,6 @@ def print_env() -> None:
     if is_torch_cuda_available():
         info["PyTorch version"] += " (GPU)"
         info["GPU type"] = torch.cuda.get_device_name()
-
-    if is_torch_npu_available():
-        info["PyTorch version"] += " (NPU)"
-        info["NPU type"] = torch.npu.get_device_name()
-        info["CANN version"] = torch.version.cann
 
     try:
         import deepspeed  # type: ignore
