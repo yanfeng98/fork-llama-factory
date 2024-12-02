@@ -79,8 +79,6 @@ TRAINING_STAGES = {
     "Pre-Training": "pt",
 }
 
-STAGES_USE_PAIR_DATA = {"rm", "dpo"}
-
 SUPPORTED_CLASS_FOR_BLOCK_DIAG_ATTN = {
     "cohere",
     "falcon",
