@@ -15,12 +15,8 @@
 from functools import partial
 from typing import TYPE_CHECKING, Callable, Literal, Optional, Tuple
 
-from .processors.feedback import preprocess_feedback_dataset
 from .processors.pretrain import preprocess_pretrain_dataset
-from .processors.supervised import (
-    print_supervised_dataset_example,
-)
-from .processors.unsupervised import preprocess_unsupervised_dataset, print_unsupervised_dataset_example
+from .processors.unsupervised import print_unsupervised_dataset_example
 
 
 if TYPE_CHECKING:
@@ -32,7 +28,7 @@ if TYPE_CHECKING:
 
 def get_preprocess_and_print_func(
     data_args: "DataArguments",
-    stage: Literal["pt", "sft", "rm", "ppo", "kto"],
+    stage: Literal["pt"],
     template: "Template",
     tokenizer: "PreTrainedTokenizer",
     processor: Optional["ProcessorMixin"],
@@ -42,24 +38,6 @@ def get_preprocess_and_print_func(
         preprocess_func = partial(
             preprocess_pretrain_dataset,
             tokenizer=tokenizer,
-            data_args=data_args,
-        )
-        print_function = partial(print_unsupervised_dataset_example, tokenizer=tokenizer)
-    elif stage == "kto":
-        preprocess_func = partial(
-            preprocess_feedback_dataset,
-            template=template,
-            tokenizer=tokenizer,
-            processor=processor,
-            data_args=data_args,
-        )
-        print_function = partial(print_supervised_dataset_example, tokenizer=tokenizer)
-    else:
-        preprocess_func = partial(
-            preprocess_unsupervised_dataset,
-            template=template,
-            tokenizer=tokenizer,
-            processor=processor,
             data_args=data_args,
         )
         print_function = partial(print_unsupervised_dataset_example, tokenizer=tokenizer)
