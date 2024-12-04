@@ -1,13 +1,10 @@
-# Copyright 2024 HuggingFace Inc. and the LlamaFactory team.
+# Copyright 2024 luyanfeng
 #
-# This code is inspired by the HuggingFace's transformers library.
-# https://github.com/huggingface/transformers/blob/v4.40.0/examples/pytorch/language-modeling/run_clm.py
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
+# Licensed under the MIT License, (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+#     http://opensource.org/licenses/MIT
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,

@@ -59,7 +59,6 @@ def export_model(args: Optional[Dict[str, Any]] = None) -> None:
 
     tokenizer_module = load_tokenizer(model_args)
     tokenizer = tokenizer_module["tokenizer"]
-    processor = tokenizer_module["processor"]
     get_template_and_fix_tokenizer(tokenizer, data_args)
     model = load_model(tokenizer, model_args, finetuning_args)  # must after fixing tokenizer to resize vocab
 
@@ -119,11 +118,6 @@ def export_model(args: Optional[Dict[str, Any]] = None) -> None:
         tokenizer.save_pretrained(model_args.export_dir)
         if model_args.export_hub_model_id is not None:
             tokenizer.push_to_hub(model_args.export_hub_model_id, token=model_args.hf_hub_token)
-
-        if processor is not None:
-            processor.save_pretrained(model_args.export_dir)
-            if model_args.export_hub_model_id is not None:
-                processor.push_to_hub(model_args.export_hub_model_id, token=model_args.hf_hub_token)
 
     except Exception as e:
         logger.warning_rank0(f"Cannot save tokenizer, please copy the files manually: {e}.")

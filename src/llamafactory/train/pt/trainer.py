@@ -36,13 +36,10 @@ class CustomTrainer(Trainer):
     """
 
     def __init__(
-        self, finetuning_args: "FinetuningArguments", processor: Optional["ProcessorMixin"], **kwargs
+        self, finetuning_args: "FinetuningArguments", **kwargs
     ) -> None:
         super().__init__(**kwargs)
         self.finetuning_args = finetuning_args
-
-        if processor is not None:
-            self.add_callback(SaveProcessorCallback(processor))
 
         if finetuning_args.pissa_convert:
             self.add_callback(PissaConvertCallback)
