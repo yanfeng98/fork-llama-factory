@@ -102,21 +102,6 @@ def autocast_projector_dtype(model: "PreTrainedModel", model_args: "ModelArgumen
         logger.info_rank0(f"Casting multimodal projector outputs in {model_args.compute_dtype}.")
         mm_projector.register_forward_hook(_mm_projector_forward_post_hook)
 
-
-def configure_visual_model(config: "PretrainedConfig") -> None:
-    r"""
-    Patches VLMs before loading them.
-    """
-    model_type = getattr(config, "model_type", None)
-    if model_type in ["llava", "llava_next", "llava_next_video", "mllama", "paligemma", "video_llava"]:
-        # required for ds zero3 and valuehead models
-        setattr(config, "hidden_size", getattr(config.text_config, "hidden_size", None))
-
-    if getattr(config, "is_yi_vl_derived_model", None):
-        logger.info_rank0("Detected Yi-VL model, applying projector patch.")
-        transformers.models.llava.modeling_llava.LlavaMultiModalProjector = LlavaMultiModalProjectorForYiVL
-
-
 def get_forbidden_modules(config: "PretrainedConfig", finetuning_args: "FinetuningArguments") -> Set[str]:
     r"""
     Freezes vision tower and language model for VLM full/freeze tuning.
@@ -145,41 +130,6 @@ def get_forbidden_modules(config: "PretrainedConfig", finetuning_args: "Finetuni
             raise ValueError("Qwen2-VL models do not support `train_mm_proj_only`.")
 
     return forbidden_modules
-
-
-def get_image_seqlen(config: "PretrainedConfig") -> int:
-    r"""
-    Computes the number of special tokens per image.
-    """
-    model_type = getattr(config, "model_type", None)
-    if model_type == "llava":
-        image_seqlen = (config.vision_config.image_size // config.vision_config.patch_size) ** 2
-        if getattr(config, "vision_feature_select_strategy", "default") == "full":  # add [CLS] token
-            image_seqlen += 1
-    elif model_type == "paligemma":
-        image_seqlen = config.vision_config.num_image_tokens
-    else:
-        image_seqlen = -1
-
-    return image_seqlen
-
-
-def get_patch_size(config: "PretrainedConfig", processor: "ProcessorMixin") -> int:
-    r"""
-    Computes the patch size of the vit.
-    """
-    patch_size = getattr(config.vision_config, "patch_size", getattr(processor, "patch_size", -1))
-    return patch_size
-
-
-def get_vision_feature_select_strategy(config: "PretrainedConfig", processor: "ProcessorMixin") -> int:
-    r"""
-    Get the vision_feature_select_strategy.
-    """
-    vision_feature_select_strategy = getattr(
-        config, "vision_feature_select_strategy", getattr(processor, "vision_feature_select_strategy", "default")
-    )
-    return vision_feature_select_strategy
 
 
 def patch_target_modules(
