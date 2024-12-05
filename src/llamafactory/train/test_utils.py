@@ -91,9 +91,9 @@ def load_reference_model(
         return model
 
     model = AutoModelForCausalLM.from_pretrained(model_path, torch_dtype=torch.float16, device_map=current_device)
-    if use_lora or use_pissa:
+    if use_lora:
         model = PeftModel.from_pretrained(
-            model, lora_path, subfolder="pissa_init" if use_pissa else None, is_trainable=is_trainable
+            model, lora_path, is_trainable=is_trainable
         )
         for param in filter(lambda p: p.requires_grad, model.parameters()):
             param.data = param.data.to(torch.float32)

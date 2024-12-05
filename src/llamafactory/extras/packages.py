@@ -50,11 +50,6 @@ def _get_package_version(name: str) -> "Version":
 def is_pyav_available():
     return _is_package_available("av")
 
-
-def is_galore_available():
-    return _is_package_available("galore_torch")
-
-
 def is_matplotlib_available():
     return _is_package_available("matplotlib")
 

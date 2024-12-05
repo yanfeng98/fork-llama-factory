@@ -108,18 +108,6 @@ class LoraArguments:
         default=False,
         metadata={"help": "Whether or not to use the weight-decomposed lora method (DoRA)."},
     )
-    pissa_init: bool = field(
-        default=False,
-        metadata={"help": "Whether or not to initialize a PiSSA adapter."},
-    )
-    pissa_iter: int = field(
-        default=16,
-        metadata={"help": "The number of iteration steps performed by FSVD in PiSSA. Use -1 to disable it."},
-    )
-    pissa_convert: bool = field(
-        default=False,
-        metadata={"help": "Whether or not to convert the PiSSA adapter to a normal LoRA adapter."},
-    )
     create_new_adapter: bool = field(
         default=False,
         metadata={"help": "Whether or not to create a new adapter with randomly initialized weight."},
@@ -135,21 +123,13 @@ class FinetuningArguments(FreezeArguments, LoraArguments):
         default=False,
         metadata={"help": "Whether or not to train model in purely bf16 precision (without AMP)."},
     )
-    stage: Literal["pt", "sft", "rm", "ppo", "dpo", "kto"] = field(
+    stage: Literal["pt"] = field(
         default="sft",
         metadata={"help": "Which stage will be performed in training."},
     )
     finetuning_type: Literal["lora", "freeze", "full"] = field(
         default="lora",
         metadata={"help": "Which fine-tuning method to use."},
-    )
-    use_llama_pro: bool = field(
-        default=False,
-        metadata={"help": "Whether or not to make only the parameters in the expanded blocks trainable."},
-    )
-    use_adam_mini: bool = field(
-        default=False,
-        metadata={"help": "Whether or not to use the Adam-mini optimizer."},
     )
     freeze_vision_tower: bool = field(
         default=True,
@@ -187,12 +167,6 @@ class FinetuningArguments(FreezeArguments, LoraArguments):
 
         assert self.finetuning_type in ["lora", "freeze", "full"], "Invalid fine-tuning method."
 
-        if self.use_llama_pro and self.finetuning_type == "full":
-            raise ValueError("`use_llama_pro` is only valid for Freeze or LoRA training.")
-
-        if self.pissa_init and (self.stage in ["ppo", "kto"] or self.use_ref_model):
-            raise ValueError("Cannot use PiSSA for current training stage.")
-
         if self.train_mm_proj_only and self.finetuning_type != "full":
             raise ValueError("`train_mm_proj_only` is only valid for full training.")
 
@@ -205,6 +179,3 @@ class FinetuningArguments(FreezeArguments, LoraArguments):
 
             if self.use_dora:
                 raise ValueError("`use_dora` is only valid for LoRA training.")
-
-            if self.pissa_init:
-                raise ValueError("`pissa_init` is only valid for LoRA training.")

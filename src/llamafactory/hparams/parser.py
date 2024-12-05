@@ -84,9 +84,6 @@ def _verify_model_args(
         if finetuning_args.finetuning_type != "lora":
             raise ValueError("Quantization is only compatible with the LoRA method.")
 
-        if finetuning_args.pissa_init:
-            raise ValueError("Please use scripts/pissa_init.py to initialize PiSSA for a quantized model.")
-
         if model_args.resize_vocab:
             raise ValueError("Cannot resize embedding layers of a quantized model.")
 
@@ -114,9 +111,6 @@ def _check_extra_dependencies(
 
     if model_args.mixture_of_depths is not None:
         require_version("mixture-of-depth>=1.1.6", "To fix: pip install mixture-of-depth>=1.1.6")
-
-    if finetuning_args.use_adam_mini:
-        require_version("adam-mini", "To fix: pip install adam-mini")
 
     if finetuning_args.plot_loss:
         require_version("matplotlib", "To fix: pip install matplotlib")
@@ -154,9 +148,6 @@ def get_train_args(args: Optional[Dict[str, Any]] = None) -> _TRAIN_CLS:
         if data_args.train_on_prompt or data_args.mask_history:
             raise ValueError("`train_on_prompt` or `mask_history` cannot be set as True except SFT.")
 
-    if finetuning_args.stage == "sft" and training_args.do_predict and not training_args.predict_with_generate:
-        raise ValueError("Please enable `predict_with_generate` to save model predictions.")
-
     if training_args.parallel_mode == ParallelMode.NOT_DISTRIBUTED:
         raise ValueError("Please launch distributed training with `llamafactory-cli` or `torchrun`.")
 
@@ -186,9 +177,6 @@ def get_train_args(args: Optional[Dict[str, Any]] = None) -> _TRAIN_CLS:
 
     if training_args.do_train and model_args.quantization_device_map == "auto":
         raise ValueError("Cannot use device map for quantized models in training.")
-
-    if finetuning_args.pissa_init and is_deepspeed_zero3_enabled():
-        raise ValueError("Please use scripts/pissa_init.py to initialize PiSSA in DeepSpeed ZeRO-3.")
 
     if finetuning_args.pure_bf16:
         if not (is_torch_bf16_gpu_available() or (is_torch_npu_available() and torch.npu.is_bf16_supported())):

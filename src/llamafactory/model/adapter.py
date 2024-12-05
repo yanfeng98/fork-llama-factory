@@ -21,7 +21,7 @@ from transformers.integrations import is_deepspeed_zero3_enabled
 from transformers.modeling_utils import is_fsdp_enabled
 
 from ..extras import logging
-from .model_utils.misc import find_all_linear_modules, find_expanded_modules
+from .model_utils.misc import find_all_linear_modules
 from .model_utils.quantization import QuantizationMethod
 from .model_utils.unsloth import get_unsloth_peft_model, load_unsloth_peft_model
 from .model_utils.visual import get_forbidden_modules, patch_target_modules
@@ -78,17 +78,7 @@ def _setup_freeze_tuning(
     if not num_layers:
         raise ValueError("Current model does not support freeze tuning.")
 
-    if finetuning_args.use_llama_pro:
-        if num_layers % finetuning_args.freeze_trainable_layers != 0:
-            raise ValueError(
-                "`num_layers` {} should be divisible by `num_layer_trainable` {}.".format(
-                    num_layers, finetuning_args.freeze_trainable_layers
-                )
-            )
-
-        stride = num_layers // finetuning_args.freeze_trainable_layers
-        trainable_layer_ids = range(stride - 1, num_layers + stride - 1, stride)
-    elif finetuning_args.freeze_trainable_layers > 0:  # fine-tuning the last n layers if num_layer_trainable > 0
+    if finetuning_args.freeze_trainable_layers > 0:  # fine-tuning the last n layers if num_layer_trainable > 0
         trainable_layer_ids = range(max(0, num_layers - finetuning_args.freeze_trainable_layers), num_layers)
     else:  # fine-tuning the first n layers if num_layer_trainable < 0
         trainable_layer_ids = range(min(-finetuning_args.freeze_trainable_layers, num_layers))
@@ -198,9 +188,6 @@ def _setup_lora_tuning(
         else:
             target_modules = finetuning_args.lora_target
 
-        if finetuning_args.use_llama_pro:
-            target_modules = find_expanded_modules(model, target_modules, finetuning_args.freeze_trainable_layers)
-
         target_modules = patch_target_modules(model.config, finetuning_args, target_modules)
 
         if (
@@ -234,13 +221,6 @@ def _setup_lora_tuning(
         if model_args.use_unsloth:
             model = get_unsloth_peft_model(model, model_args, peft_kwargs)
         else:
-            if finetuning_args.pissa_init:
-                if finetuning_args.pissa_iter == -1:
-                    logger.info_rank0("Using PiSSA initialization.")
-                    peft_kwargs["init_lora_weights"] = "pissa"
-                else:
-                    logger.info_rank0(f"Using PiSSA initialization with FSVD steps {finetuning_args.pissa_iter}.")
-                    peft_kwargs["init_lora_weights"] = f"pissa_niter_{finetuning_args.pissa_iter}"
 
             lora_config = LoraConfig(
                 task_type=TaskType.CAUSAL_LM,
@@ -273,9 +253,6 @@ def init_adapter(
     if is_trainable and getattr(model, "quantization_method", None) is not None:
         if finetuning_args.finetuning_type != "lora":
             raise ValueError("Quantized models can only be used for the LoRA tuning.")
-
-        if finetuning_args.pissa_init:
-            raise ValueError("Cannot initialize PiSSA adapter on quantized models.")
 
     # cast trainable parameters to float32 if:
     # 1. is_trainable and not pure_bf16 and not badam and quantization_bit is not None (qlora)

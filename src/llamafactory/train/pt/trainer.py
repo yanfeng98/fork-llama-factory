@@ -19,13 +19,11 @@ from transformers import Trainer
 from typing_extensions import override
 
 from ...extras.packages import is_transformers_version_equal_to_4_46
-from ..callbacks import PissaConvertCallback, SaveProcessorCallback
 from ..trainer_utils import create_custom_optimizer, create_custom_scheduler
 
 
 if TYPE_CHECKING:
     import torch
-    from transformers import ProcessorMixin
 
     from ...hparams import FinetuningArguments
 
@@ -40,9 +38,6 @@ class CustomTrainer(Trainer):
     ) -> None:
         super().__init__(**kwargs)
         self.finetuning_args = finetuning_args
-
-        if finetuning_args.pissa_convert:
-            self.add_callback(PissaConvertCallback)
 
     @override
     def create_optimizer(self) -> "torch.optim.Optimizer":
