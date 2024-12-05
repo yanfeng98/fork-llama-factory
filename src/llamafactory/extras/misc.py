@@ -22,7 +22,6 @@ from typing import TYPE_CHECKING, Tuple, Union
 import torch
 import torch.distributed as dist
 import transformers.dynamic_module_utils
-from transformers import InfNanRemoveLogitsProcessor, LogitsProcessorList
 from transformers.dynamic_module_utils import get_relative_imports
 from transformers.utils import (
     is_torch_bf16_gpu_available,
@@ -50,28 +49,6 @@ if TYPE_CHECKING:
 
 
 logger = logging.get_logger(__name__)
-
-
-class AverageMeter:
-    r"""
-    Computes and stores the average and current value.
-    """
-
-    def __init__(self):
-        self.reset()
-
-    def reset(self):
-        self.val = 0
-        self.avg = 0
-        self.sum = 0
-        self.count = 0
-
-    def update(self, val, n=1):
-        self.val = val
-        self.sum += val * n
-        self.count += n
-        self.avg = self.sum / self.count
-
 
 def check_dependencies() -> None:
     r"""
@@ -140,30 +117,17 @@ def get_device_count() -> int:
     """
     if is_torch_xpu_available():
         return torch.xpu.device_count()
-    elif is_torch_npu_available():
-        return torch.npu.device_count()
     elif is_torch_cuda_available():
         return torch.cuda.device_count()
     else:
         return 0
 
 
-def get_logits_processor() -> "LogitsProcessorList":
-    r"""
-    Gets logits processor that removes NaN and Inf logits.
-    """
-    logits_processor = LogitsProcessorList()
-    logits_processor.append(InfNanRemoveLogitsProcessor())
-    return logits_processor
-
-
 def get_peak_memory() -> Tuple[int, int]:
     r"""
     Gets the peak memory usage for the current device (in Bytes).
     """
-    if is_torch_npu_available():
-        return torch.npu.max_memory_allocated(), torch.npu.max_memory_reserved()
-    elif is_torch_cuda_available():
+    if is_torch_cuda_available():
         return torch.cuda.max_memory_allocated(), torch.cuda.max_memory_reserved()
     else:
         return 0, 0
@@ -188,48 +152,12 @@ def infer_optim_dtype(model_dtype: "torch.dtype") -> "torch.dtype":
         return torch.float32
 
 
-def is_gpu_or_npu_available() -> bool:
-    r"""
-    Checks if the GPU or NPU is available.
-    """
-    return is_torch_npu_available() or is_torch_cuda_available()
-
-
-def numpify(inputs: Union["NDArray", "torch.Tensor"]) -> "NDArray":
-    r"""
-    Casts a torch tensor or a numpy array to a numpy array.
-    """
-    if isinstance(inputs, torch.Tensor):
-        inputs = inputs.cpu()
-        if inputs.dtype == torch.bfloat16:  # numpy does not support bfloat16 until 1.21.4
-            inputs = inputs.to(torch.float32)
-
-        inputs = inputs.numpy()
-
-    return inputs
-
-
 def skip_check_imports() -> None:
     r"""
     Avoids flash attention import error in custom model files.
     """
     if os.environ.get("FORCE_CHECK_IMPORTS", "0").lower() not in ["true", "1"]:
         transformers.dynamic_module_utils.check_imports = get_relative_imports
-
-
-def torch_gc() -> None:
-    r"""
-    Collects GPU or NPU memory.
-    """
-    gc.collect()
-    if is_torch_xpu_available():
-        torch.xpu.empty_cache()
-    elif is_torch_npu_available():
-        torch.npu.empty_cache()
-    elif is_torch_mps_available():
-        torch.mps.empty_cache()
-    elif is_torch_cuda_available():
-        torch.cuda.empty_cache()
 
 
 def try_download_model_from_other_hub(model_args: "ModelArguments") -> str:
@@ -264,11 +192,3 @@ def use_modelscope() -> bool:
 
 def use_openmind() -> bool:
     return os.environ.get("USE_OPENMIND_HUB", "0").lower() in ["true", "1"]
-
-
-def cal_effective_tokens(effective_token_num, epoch, train_runtime) -> int:
-    r"""
-    calculate effective tokens.
-    """
-    result = effective_token_num * epoch / train_runtime
-    return result / dist.get_world_size() if dist.is_initialized() else result

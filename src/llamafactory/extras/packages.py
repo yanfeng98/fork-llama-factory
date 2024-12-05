@@ -58,18 +58,6 @@ def is_pillow_available():
     return _is_package_available("PIL")
 
 
-def is_requests_available():
-    return _is_package_available("requests")
-
-
-def is_rouge_available():
-    return _is_package_available("rouge_chinese")
-
-
-def is_starlette_available():
-    return _is_package_available("sse_starlette")
-
-
 @lru_cache
 def is_transformers_version_greater_than(content: str):
     return _get_package_version("transformers") >= version.parse(content)
@@ -78,7 +66,3 @@ def is_transformers_version_greater_than(content: str):
 @lru_cache
 def is_transformers_version_equal_to_4_46():
     return version.parse("4.46.0") <= _get_package_version("transformers") <= version.parse("4.46.1")
-
-
-def is_uvicorn_available():
-    return _is_package_available("uvicorn")
