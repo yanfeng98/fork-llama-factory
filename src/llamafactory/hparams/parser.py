@@ -137,9 +137,6 @@ def get_train_args(args: Optional[Dict[str, Any]] = None) -> _TRAIN_CLS:
 
     if finetuning_args.stage != "sft":
 
-        if data_args.neat_packing:
-            raise ValueError("`neat_packing` cannot be set as True except SFT.")
-
         if data_args.train_on_prompt or data_args.mask_history:
             raise ValueError("`train_on_prompt` or `mask_history` cannot be set as True except SFT.")
 
@@ -183,10 +180,6 @@ def get_train_args(args: Optional[Dict[str, Any]] = None) -> _TRAIN_CLS:
     if model_args.use_unsloth and is_deepspeed_zero3_enabled():
         raise ValueError("Unsloth is incompatible with DeepSpeed ZeRO-3.")
 
-    if data_args.neat_packing and not data_args.packing:
-        logger.warning_rank0("`neat_packing` requires `packing` is True. Change `packing` to True.")
-        data_args.packing = True
-
     _verify_model_args(model_args, data_args, finetuning_args)
     _check_extra_dependencies(model_args, finetuning_args, training_args)
 
@@ -207,12 +200,6 @@ def get_train_args(args: Optional[Dict[str, Any]] = None) -> _TRAIN_CLS:
     if training_args.do_train and (not training_args.fp16) and (not training_args.bf16):
         logger.warning_rank0("We recommend enable mixed precision training.")
 
-    if (not training_args.do_train) and model_args.quantization_bit is not None:
-        logger.warning_rank0("Evaluating model in 4/8-bit mode may cause lower scores.")
-
-    if (not training_args.do_train) and finetuning_args.stage == "dpo" and finetuning_args.ref_model is None:
-        logger.warning_rank0("Specify `ref_model` for computing rewards at evaluation.")
-
     # Post-process training arguments
     if (
         training_args.parallel_mode == ParallelMode.DISTRIBUTED
@@ -222,13 +209,7 @@ def get_train_args(args: Optional[Dict[str, Any]] = None) -> _TRAIN_CLS:
         logger.warning_rank0("`ddp_find_unused_parameters` needs to be set as False for LoRA in DDP training.")
         training_args.ddp_find_unused_parameters = False
 
-    if finetuning_args.stage in ["rm", "ppo"] and finetuning_args.finetuning_type in ["full", "freeze"]:
-        can_resume_from_checkpoint = False
-        if training_args.resume_from_checkpoint is not None:
-            logger.warning_rank0("Cannot resume from checkpoint in current stage.")
-            training_args.resume_from_checkpoint = None
-    else:
-        can_resume_from_checkpoint = True
+    can_resume_from_checkpoint = True
 
     if (
         training_args.resume_from_checkpoint is None
@@ -248,17 +229,6 @@ def get_train_args(args: Optional[Dict[str, Any]] = None) -> _TRAIN_CLS:
             logger.info_rank0(f"Resuming training from {training_args.resume_from_checkpoint}.")
             logger.info_rank0("Change `output_dir` or use `overwrite_output_dir` to avoid.")
 
-    if (
-        finetuning_args.stage in ["rm", "ppo"]
-        and finetuning_args.finetuning_type == "lora"
-        and training_args.resume_from_checkpoint is not None
-    ):
-        logger.warning_rank0(
-            "Add {} to `adapter_name_or_path` to resume training from checkpoint.".format(
-                training_args.resume_from_checkpoint
-            )
-        )
-
     # Post-process model arguments
     if training_args.bf16 or finetuning_args.pure_bf16:
         model_args.compute_dtype = torch.bfloat16
@@ -267,7 +237,6 @@ def get_train_args(args: Optional[Dict[str, Any]] = None) -> _TRAIN_CLS:
 
     model_args.device_map = {"": get_current_device()}
     model_args.model_max_length = data_args.cutoff_len
-    model_args.block_diag_attn = data_args.neat_packing
     data_args.packing = data_args.packing if data_args.packing is not None else finetuning_args.stage == "pt"
 
     # Log on each process the small summary

@@ -105,10 +105,6 @@ class DataArguments:
         default=None,
         metadata={"help": "Enable sequences packing in training. Will automatically enable in pre-training."},
     )
-    neat_packing: bool = field(
-        default=False,
-        metadata={"help": "Enable sequence packing without cross-attention."},
-    )
     tool_format: Optional[str] = field(
         default=None,
         metadata={"help": "Tool format to use for constructing function calling examples."},

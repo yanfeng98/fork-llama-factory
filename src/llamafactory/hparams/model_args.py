@@ -243,11 +243,6 @@ class ModelArguments(QuantizationArguments, ExportArguments):
         init=False,
         metadata={"help": "The maximum input length for model, derived from `cutoff_len`. Do not specify it."},
     )
-    block_diag_attn: bool = field(
-        default=False,
-        init=False,
-        metadata={"help": "Whether use block diag attention or not, derived from `neat_packing`. Do not specify it."},
-    )
 
     def __post_init__(self):
         if self.model_name_or_path is None:

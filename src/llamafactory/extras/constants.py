@@ -75,26 +75,9 @@ TRAINING_STAGES = {
     "Pre-Training": "pt",
 }
 
-SUPPORTED_CLASS_FOR_BLOCK_DIAG_ATTN = {
-    "cohere",
-    "falcon",
-    "gemma",
-    "gemma2",
-    "llama",
-    "mistral",
-    "phi",
-    "phi3",
-    "qwen2",
-    "starcoder2",
-}
-
 SUPPORTED_CLASS_FOR_S2ATTN = {"llama"}
 
 VIDEO_PLACEHOLDER = os.environ.get("VIDEO_PLACEHOLDER", "<video>")
-
-V_HEAD_WEIGHTS_NAME = "value_head.bin"
-
-V_HEAD_SAFE_WEIGHTS_NAME = "value_head.safetensors"
 
 VISION_MODELS = set()
 

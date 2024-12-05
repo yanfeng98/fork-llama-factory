@@ -1,10 +1,10 @@
-# Copyright 2024 the LlamaFactory team.
+# Copyright 2024 luyanfeng
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
+# Licensed under the MIT License, (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+#     http://opensource.org/licenses/MIT
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
-import shutil
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 import torch
@@ -21,7 +19,6 @@ from transformers import PreTrainedModel
 
 from ..data import get_template_and_fix_tokenizer
 from ..extras import logging
-from ..extras.constants import V_HEAD_SAFE_WEIGHTS_NAME, V_HEAD_WEIGHTS_NAME
 from ..hparams import get_infer_args, get_train_args
 from ..model import load_model, load_tokenizer
 from .callbacks import LogCallback
