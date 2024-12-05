@@ -37,7 +37,7 @@ logger = logging.get_logger(__name__)
 
 def run_exp(args: Optional[Dict[str, Any]] = None, callbacks: List["TrainerCallback"] = []) -> None:
     callbacks.append(LogCallback())
-    model_args, data_args, training_args, finetuning_args, generating_args = get_train_args(args)
+    model_args, data_args, training_args, finetuning_args = get_train_args(args)
 
     if finetuning_args.stage == "pt":
         run_pt(model_args, data_args, training_args, finetuning_args, callbacks)
@@ -46,7 +46,7 @@ def run_exp(args: Optional[Dict[str, Any]] = None, callbacks: List["TrainerCallb
 
 
 def export_model(args: Optional[Dict[str, Any]] = None) -> None:
-    model_args, data_args, finetuning_args, _ = get_infer_args(args)
+    model_args, data_args, finetuning_args = get_infer_args(args)
 
     if model_args.export_dir is None:
         raise ValueError("Please specify `export_dir` to save model.")

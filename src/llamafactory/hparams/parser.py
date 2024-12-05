@@ -30,7 +30,6 @@ from ..extras.constants import CHECKPOINT_NAMES
 from ..extras.misc import check_dependencies, get_current_device
 from .data_args import DataArguments
 from .finetuning_args import FinetuningArguments
-from .generating_args import GeneratingArguments
 from .model_args import ModelArguments
 
 
@@ -40,10 +39,10 @@ logger = logging.get_logger(__name__)
 check_dependencies()
 
 
-_TRAIN_ARGS = [ModelArguments, DataArguments, Seq2SeqTrainingArguments, FinetuningArguments, GeneratingArguments]
-_TRAIN_CLS = Tuple[ModelArguments, DataArguments, Seq2SeqTrainingArguments, FinetuningArguments, GeneratingArguments]
-_INFER_ARGS = [ModelArguments, DataArguments, FinetuningArguments, GeneratingArguments]
-_INFER_CLS = Tuple[ModelArguments, DataArguments, FinetuningArguments, GeneratingArguments]
+_TRAIN_ARGS = [ModelArguments, DataArguments, Seq2SeqTrainingArguments, FinetuningArguments]
+_TRAIN_CLS = Tuple[ModelArguments, DataArguments, Seq2SeqTrainingArguments, FinetuningArguments]
+_INFER_ARGS = [ModelArguments, DataArguments, FinetuningArguments]
+_INFER_CLS = Tuple[ModelArguments, DataArguments, FinetuningArguments]
 
 
 def _parse_args(parser: "HfArgumentParser", args: Optional[Dict[str, Any]] = None) -> Tuple[Any]:
@@ -132,7 +131,7 @@ def _parse_infer_args(args: Optional[Dict[str, Any]] = None) -> _INFER_CLS:
 
 
 def get_train_args(args: Optional[Dict[str, Any]] = None) -> _TRAIN_CLS:
-    model_args, data_args, training_args, finetuning_args, generating_args = _parse_train_args(args)
+    model_args, data_args, training_args, finetuning_args = _parse_train_args(args)
 
     # Setup logging
     if training_args.should_log:
@@ -288,11 +287,11 @@ def get_train_args(args: Optional[Dict[str, Any]] = None) -> _TRAIN_CLS:
 
     transformers.set_seed(training_args.seed)
 
-    return model_args, data_args, training_args, finetuning_args, generating_args
+    return model_args, data_args, training_args, finetuning_args
 
 
 def get_infer_args(args: Optional[Dict[str, Any]] = None) -> _INFER_CLS:
-    model_args, data_args, finetuning_args, generating_args = _parse_infer_args(args)
+    model_args, data_args, finetuning_args = _parse_infer_args(args)
 
     _set_transformers_logging()
 
@@ -308,4 +307,4 @@ def get_infer_args(args: Optional[Dict[str, Any]] = None) -> _INFER_CLS:
     else:
         model_args.device_map = "auto"
 
-    return model_args, data_args, finetuning_args, generating_args
+    return model_args, data_args, finetuning_args
