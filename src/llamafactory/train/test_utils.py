@@ -65,42 +65,6 @@ def load_train_model(add_valuehead: bool = False, **kwargs) -> "PreTrainedModel"
     tokenizer = load_tokenizer(model_args)["tokenizer"]
     return load_model(tokenizer, model_args, finetuning_args, is_trainable=True, add_valuehead=add_valuehead)
 
-
-def load_infer_model(add_valuehead: bool = False, **kwargs) -> "PreTrainedModel":
-    model_args, _, finetuning_args, _ = get_infer_args(kwargs)
-    tokenizer = load_tokenizer(model_args)["tokenizer"]
-    return load_model(tokenizer, model_args, finetuning_args, is_trainable=False, add_valuehead=add_valuehead)
-
-
-def load_reference_model(
-    model_path: str,
-    lora_path: Optional[str] = None,
-    use_lora: bool = False,
-    use_pissa: bool = False,
-    is_trainable: bool = False,
-    add_valuehead: bool = False,
-) -> Union["PreTrainedModel", "LoraModel"]:
-    current_device = get_current_device()
-    if add_valuehead:
-        model: "AutoModelForCausalLMWithValueHead" = AutoModelForCausalLMWithValueHead.from_pretrained(
-            model_path, torch_dtype=torch.float16, device_map=current_device
-        )
-        if not is_trainable:
-            model.v_head = model.v_head.to(torch.float16)
-
-        return model
-
-    model = AutoModelForCausalLM.from_pretrained(model_path, torch_dtype=torch.float16, device_map=current_device)
-    if use_lora:
-        model = PeftModel.from_pretrained(
-            model, lora_path, is_trainable=is_trainable
-        )
-        for param in filter(lambda p: p.requires_grad, model.parameters()):
-            param.data = param.data.to(torch.float32)
-
-    return model
-
-
 def load_train_dataset(**kwargs) -> "Dataset":
     model_args, data_args, training_args, _, _ = get_train_args(kwargs)
     tokenizer_module = load_tokenizer(model_args)

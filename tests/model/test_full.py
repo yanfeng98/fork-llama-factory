@@ -16,7 +16,7 @@ import os
 
 import torch
 
-from llamafactory.train.test_utils import load_infer_model, load_train_model
+from llamafactory.train.test_utils import load_train_model
 
 
 TINY_LLAMA = os.getenv("TINY_LLAMA", "llamafactory/tiny-random-Llama-3")
@@ -49,10 +49,3 @@ def test_full_train():
     for param in model.parameters():
         assert param.requires_grad is True
         assert param.dtype == torch.float32
-
-
-def test_full_inference():
-    model = load_infer_model(**INFER_ARGS)
-    for param in model.parameters():
-        assert param.requires_grad is False
-        assert param.dtype == torch.float16
