@@ -32,7 +32,6 @@ from .model_utils.moe import add_z3_leaf_module, configure_moe
 from .model_utils.packing import configure_packing
 from .model_utils.quantization import configure_quantization
 from .model_utils.rope import configure_rope
-from .model_utils.valuehead import prepare_valuehead_model
 from .model_utils.visual import (
     autocast_projector_dtype,
     configure_visual_model,
@@ -135,7 +134,6 @@ def patch_model(
     tokenizer: "PreTrainedTokenizer",
     model_args: "ModelArguments",
     is_trainable: bool,
-    add_valuehead: bool,
 ) -> None:
     gen_config = model.generation_config  # check and fix generation config
     if not gen_config.do_sample and (
@@ -147,9 +145,6 @@ def patch_model(
 
     if "GenerationMixin" not in str(model.generate.__func__):
         model.generate = MethodType(PreTrainedModel.generate, model)
-
-    if add_valuehead:
-        prepare_valuehead_model(model)
 
     if model_args.resize_vocab:
         resize_embedding_layer(model, tokenizer)
@@ -166,28 +161,3 @@ def patch_model(
         model.add_model_tags(["llama-factory"])
     except Exception:
         logger.warning_rank0("Cannot properly tag the model.")
-
-
-def patch_valuehead_model(model: "AutoModelForCausalLMWithValueHead") -> None:
-    def tie_weights(self: "AutoModelForCausalLMWithValueHead") -> None:
-        if isinstance(self.pretrained_model, PreTrainedModel):
-            self.pretrained_model.tie_weights()
-
-    def get_input_embeddings(self: "AutoModelForCausalLMWithValueHead") -> torch.nn.Module:
-        if isinstance(self.pretrained_model, PreTrainedModel):
-            return self.pretrained_model.get_input_embeddings()
-
-    def get_output_embeddings(self: "AutoModelForCausalLMWithValueHead") -> torch.nn.Module:
-        if isinstance(self.pretrained_model, PreTrainedModel):
-            return self.pretrained_model.get_output_embeddings()
-
-    def create_or_update_model_card(self: "AutoModelForCausalLMWithValueHead", output_dir: str) -> None:
-        if isinstance(self.pretrained_model, PeftModel):
-            self.pretrained_model.create_or_update_model_card(output_dir)
-
-    ignore_modules = [name for name, _ in model.named_parameters() if "pretrained_model" in name]
-    setattr(model, "_keys_to_ignore_on_save", ignore_modules)
-    setattr(model, "tie_weights", MethodType(tie_weights, model))
-    setattr(model, "get_input_embeddings", MethodType(get_input_embeddings, model))
-    setattr(model, "get_output_embeddings", MethodType(get_output_embeddings, model))
-    setattr(model, "create_or_update_model_card", MethodType(create_or_update_model_card, model))

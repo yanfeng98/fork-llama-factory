@@ -25,8 +25,7 @@ from .model_utils.liger_kernel import apply_liger_kernel
 from .model_utils.misc import register_autoclass
 from .model_utils.mod import convert_pretrained_model_to_mod, load_mod_pretrained_model
 from .model_utils.unsloth import load_unsloth_pretrained_model
-from .model_utils.valuehead import load_valuehead_params
-from .patcher import patch_config, patch_model, patch_processor, patch_tokenizer, patch_valuehead_model
+from .patcher import patch_config, patch_model, patch_processor, patch_tokenizer
 
 
 if TYPE_CHECKING:
@@ -121,7 +120,7 @@ def load_model(
     init_kwargs = _get_init_kwargs(model_args)
     config = load_config(model_args)
     patch_config(config, tokenizer, model_args, init_kwargs, is_trainable)
-    apply_liger_kernel(config, model_args, is_trainable, require_logits=(finetuning_args.stage not in ["pt", "sft"]))
+    apply_liger_kernel(config, model_args, is_trainable, require_logits=(finetuning_args.stage not in ["pt"]))
 
     model = None
     lazy_load = False
@@ -152,24 +151,10 @@ def load_model(
             model = convert_pretrained_model_to_mod(model, config, model_args)
 
     if not lazy_load:
-        patch_model(model, tokenizer, model_args, is_trainable, add_valuehead)
+        patch_model(model, tokenizer, model_args, is_trainable)
         register_autoclass(config, model, tokenizer)
 
     model = init_adapter(config, model, model_args, finetuning_args, is_trainable)
-
-    if add_valuehead:
-        model = AutoModelForCausalLMWithValueHead.from_pretrained(model)
-        patch_valuehead_model(model)
-
-        if model_args.adapter_name_or_path is not None:
-            vhead_path = model_args.adapter_name_or_path[-1]
-        else:
-            vhead_path = model_args.model_name_or_path
-
-        vhead_params = load_valuehead_params(vhead_path, model_args)
-        if vhead_params is not None:
-            model.load_state_dict(vhead_params, strict=False)
-            logger.info_rank0(f"Loaded valuehead from checkpoint: {vhead_path}")
 
     if not is_trainable:
         model.requires_grad_(False)

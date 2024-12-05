@@ -156,7 +156,7 @@ def _get_merged_dataset(
     model_args: "ModelArguments",
     data_args: "DataArguments",
     training_args: "Seq2SeqTrainingArguments",
-    stage: Literal["pt", "sft", "rm", "ppo", "kto"],
+    stage: Literal["pt"],
 ) -> Optional[Union["Dataset", "IterableDataset"]]:
     r"""
     Gets the merged datasets in the standard format.
@@ -166,8 +166,6 @@ def _get_merged_dataset(
 
     datasets = []
     for dataset_attr in get_dataset_list(dataset_names, data_args.dataset_dir):
-        if (stage == "rm" and dataset_attr.ranking is False) or (stage != "rm" and dataset_attr.ranking is True):
-            raise ValueError("The dataset is not applicable in the current training stage.")
 
         datasets.append(_load_single_dataset(dataset_attr, model_args, data_args, training_args))
 

@@ -71,12 +71,3 @@ def load_train_dataset(**kwargs) -> "Dataset":
     template = get_template_and_fix_tokenizer(tokenizer_module["tokenizer"], data_args)
     dataset_module = get_dataset(template, model_args, data_args, training_args, kwargs["stage"], **tokenizer_module)
     return dataset_module["train_dataset"]
-
-
-def patch_valuehead_model() -> None:
-    def post_init(self: "AutoModelForCausalLMWithValueHead", state_dict: Dict[str, "torch.Tensor"]) -> None:
-        state_dict = {k[7:]: state_dict[k] for k in state_dict.keys() if k.startswith("v_head.")}
-        self.v_head.load_state_dict(state_dict, strict=False)
-        del state_dict
-
-    AutoModelForCausalLMWithValueHead.post_init = post_init
