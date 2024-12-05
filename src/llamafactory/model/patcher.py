@@ -29,7 +29,6 @@ from .model_utils.checkpointing import prepare_model_for_training
 from .model_utils.embedding import resize_embedding_layer
 from .model_utils.longlora import configure_longlora
 from .model_utils.moe import add_z3_leaf_module, configure_moe
-from .model_utils.packing import configure_packing
 from .model_utils.quantization import configure_quantization
 from .model_utils.rope import configure_rope
 from .model_utils.visual import (
@@ -73,7 +72,6 @@ def patch_config(
     configure_longlora(config, model_args, is_trainable)
     configure_quantization(config, tokenizer, model_args, init_kwargs)
     configure_moe(config, model_args, is_trainable)
-    configure_packing(config, model_args, is_trainable)
 
     if model_args.use_cache and not is_trainable:
         setattr(config, "use_cache", True)

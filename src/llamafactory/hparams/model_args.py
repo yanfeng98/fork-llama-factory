@@ -160,10 +160,6 @@ class ModelArguments(QuantizationArguments, ExportArguments):
         default=False,
         metadata={"help": "Enable shift short attention (S^2-Attn) proposed by LongLoRA."},
     )
-    mixture_of_depths: Optional[Literal["convert", "load"]] = field(
-        default=None,
-        metadata={"help": "Convert the model to mixture-of-depths (MoD) or load the MoD model."},
-    )
     use_unsloth: bool = field(
         default=False,
         metadata={"help": "Whether or not to use unsloth's optimization for the LoRA training."},

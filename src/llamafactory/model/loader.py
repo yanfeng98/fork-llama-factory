@@ -23,7 +23,6 @@ from ..extras.misc import count_parameters, skip_check_imports, try_download_mod
 from .adapter import init_adapter
 from .model_utils.liger_kernel import apply_liger_kernel
 from .model_utils.misc import register_autoclass
-from .model_utils.mod import convert_pretrained_model_to_mod, load_mod_pretrained_model
 from .model_utils.unsloth import load_unsloth_pretrained_model
 from .patcher import patch_config, patch_model, patch_tokenizer
 
@@ -134,21 +133,12 @@ def load_model(
         init_kwargs["config"] = config
         init_kwargs["pretrained_model_name_or_path"] = model_args.model_name_or_path
 
-        if model_args.mixture_of_depths == "load":
-            model = load_mod_pretrained_model(**init_kwargs)
+        load_class = AutoModelForCausalLM
+
+        if model_args.train_from_scratch:
+            model = load_class.from_config(config, trust_remote_code=True)
         else:
-            if type(config) in AutoModelForVision2Seq._model_mapping.keys():  # assume built-in models
-                load_class = AutoModelForVision2Seq
-            else:
-                load_class = AutoModelForCausalLM
-
-            if model_args.train_from_scratch:
-                model = load_class.from_config(config, trust_remote_code=True)
-            else:
-                model = load_class.from_pretrained(**init_kwargs)
-
-        if model_args.mixture_of_depths == "convert":
-            model = convert_pretrained_model_to_mod(model, config, model_args)
+            model = load_class.from_pretrained(**init_kwargs)
 
     if not lazy_load:
         patch_model(model, tokenizer, model_args, is_trainable)

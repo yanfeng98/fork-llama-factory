@@ -104,9 +104,6 @@ def _check_extra_dependencies(
     if model_args.enable_liger_kernel:
         require_version("liger-kernel", "To fix: pip install liger-kernel")
 
-    if model_args.mixture_of_depths is not None:
-        require_version("mixture-of-depth>=1.1.6", "To fix: pip install mixture-of-depth>=1.1.6")
-
     if finetuning_args.plot_loss:
         require_version("matplotlib", "To fix: pip install matplotlib")
 
