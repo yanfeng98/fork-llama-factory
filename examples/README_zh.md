@@ -19,12 +19,6 @@
 CUDA_VISIBLE_DEVICES=0 llamafactory-cli train examples/train_lora/qwen_lora_pt.yaml
 ```
 
-#### 指令监督微调
-
-```bash
-llamafactory-cli train examples/train_lora/llama3_lora_sft.yaml
-```
-
 #### 预处理数据集
 
 对于大数据集有帮助，在配置中使用 `tokenized_path` 以加载预处理后的数据集。

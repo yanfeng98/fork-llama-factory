@@ -98,8 +98,6 @@ def _check_extra_dependencies(
     finetuning_args: "FinetuningArguments",
     training_args: Optional["Seq2SeqTrainingArguments"] = None,
 ) -> None:
-    if model_args.use_unsloth:
-        require_version("unsloth", "Please install unsloth: https://github.com/unslothai/unsloth")
 
     if model_args.enable_liger_kernel:
         require_version("liger-kernel", "To fix: pip install liger-kernel")
@@ -173,9 +171,6 @@ def get_train_args(args: Optional[Dict[str, Any]] = None) -> _TRAIN_CLS:
 
         if is_deepspeed_zero3_enabled():
             raise ValueError("`pure_bf16` is incompatible with DeepSpeed ZeRO-3.")
-
-    if model_args.use_unsloth and is_deepspeed_zero3_enabled():
-        raise ValueError("Unsloth is incompatible with DeepSpeed ZeRO-3.")
 
     _verify_model_args(model_args, data_args, finetuning_args)
     _check_extra_dependencies(model_args, finetuning_args, training_args)

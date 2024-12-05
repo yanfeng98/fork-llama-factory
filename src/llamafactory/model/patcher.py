@@ -130,8 +130,7 @@ def patch_model(
         autocast_projector_dtype(model, model_args)
         add_z3_leaf_module(model)
 
-    if not model_args.use_unsloth:
-        print_attn_implementation(model.config)
+    print_attn_implementation(model.config)
 
     try:
         model.add_model_tags(["llama-factory"])

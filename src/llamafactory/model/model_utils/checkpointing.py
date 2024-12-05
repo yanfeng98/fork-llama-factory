@@ -38,44 +38,6 @@ if TYPE_CHECKING:
 logger = logging.get_logger(__name__)
 
 
-def get_unsloth_gradient_checkpointing_func() -> Callable:
-    class UnslothGradientCheckpointing(torch.autograd.Function):
-        r"""
-        Saves VRAM by smartly offloading to RAM.
-        """
-
-        @staticmethod
-        @torch.cuda.amp.custom_fwd
-        def forward(
-            ctx: "torch.autograd.Function",
-            forward_function: "torch.Module",
-            hidden_states: "torch.Tensor",
-            *args: Union["torch.Tensor", Any],
-        ) -> "torch.Tensor":
-            saved_hidden_states = hidden_states.to("cpu", non_blocking=True)
-            with torch.no_grad():
-                output = forward_function(hidden_states, *args)
-
-            ctx.save_for_backward(saved_hidden_states)
-            ctx.forward_function = forward_function
-            ctx.args = args
-            return output
-
-        @staticmethod
-        @torch.cuda.amp.custom_bwd
-        def backward(ctx: "torch.autograd.Function", grad_output: "torch.Tensor") -> "torch.Tensor":
-            (hidden_states,) = ctx.saved_tensors
-            hidden_states = hidden_states.to("cuda", non_blocking=True).detach()
-            hidden_states.requires_grad_(True)
-            with torch.enable_grad():
-                (output,) = ctx.forward_function(hidden_states, *ctx.args)
-
-            torch.autograd.backward(output, grad_output)
-            return (None, hidden_states.grad) + (None,) * len(ctx.args)
-
-    return UnslothGradientCheckpointing.apply
-
-
 def get_custom_gradient_checkpointing_func(gradient_checkpointing_func: Callable) -> Callable:
     r"""
     Only applies gradient checkpointing to trainable layers.
@@ -98,7 +60,6 @@ def get_custom_gradient_checkpointing_func(gradient_checkpointing_func: Callable
 def _gradient_checkpointing_enable(
     self: "PreTrainedModel",
     gradient_checkpointing_kwargs: Optional[Dict[str, Any]] = None,
-    use_unsloth_gc: bool = False,
 ) -> None:
     r"""
     Activates gradient checkpointing for the current model.
@@ -113,10 +74,7 @@ def _gradient_checkpointing_enable(
     if gradient_checkpointing_kwargs is None:
         gradient_checkpointing_kwargs = {"use_reentrant": True}
 
-    if use_unsloth_gc:
-        gradient_checkpointing_func = get_unsloth_gradient_checkpointing_func()
-    else:
-        gradient_checkpointing_func = partial(checkpoint, **gradient_checkpointing_kwargs)
+    gradient_checkpointing_func = partial(checkpoint, **gradient_checkpointing_kwargs)
 
     gradient_checkpointing_func = get_custom_gradient_checkpointing_func(gradient_checkpointing_func)
     if "value" in inspect.signature(self._set_gradient_checkpointing).parameters:  # old GC format
@@ -153,7 +111,7 @@ def prepare_model_for_training(model: "PreTrainedModel", model_args: "ModelArgum
             # use_reentrant=False might increase VRAM usage (have not been empirically verified yet)
             # According to: https://github.com/huggingface/transformers/issues/28339
             gradient_checkpointing_enable = partial(
-                _gradient_checkpointing_enable, use_unsloth_gc=model_args.use_unsloth_gc
+                _gradient_checkpointing_enable
             )
             model.gradient_checkpointing_enable = MethodType(gradient_checkpointing_enable, model)
             model.gradient_checkpointing_enable(gradient_checkpointing_kwargs={"use_reentrant": True})

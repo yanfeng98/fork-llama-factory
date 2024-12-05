@@ -160,14 +160,6 @@ class ModelArguments(QuantizationArguments, ExportArguments):
         default=False,
         metadata={"help": "Enable shift short attention (S^2-Attn) proposed by LongLoRA."},
     )
-    use_unsloth: bool = field(
-        default=False,
-        metadata={"help": "Whether or not to use unsloth's optimization for the LoRA training."},
-    )
-    use_unsloth_gc: bool = field(
-        default=False,
-        metadata={"help": "Whether or not to use unsloth's gradient checkpointing."},
-    )
     enable_liger_kernel: bool = field(
         default=False,
         metadata={"help": "Whether or not to enable liger kernel for faster training."},

@@ -23,7 +23,6 @@ from transformers.modeling_utils import is_fsdp_enabled
 from ..extras import logging
 from .model_utils.misc import find_all_linear_modules
 from .model_utils.quantization import QuantizationMethod
-from .model_utils.unsloth import get_unsloth_peft_model, load_unsloth_peft_model
 from .model_utils.visual import get_forbidden_modules, patch_target_modules
 
 
@@ -149,10 +148,6 @@ def _setup_lora_tuning(
             assert len(model_args.adapter_name_or_path) == 1, "Cannot use multiple adapters in DeepSpeed ZeRO-3."
             is_mergeable = False
 
-        if model_args.use_unsloth:
-            assert len(model_args.adapter_name_or_path) == 1, "Unsloth model only accepts a single adapter."
-            is_mergeable = False
-
         if (is_trainable and not finetuning_args.create_new_adapter) or (not is_mergeable):
             adapter_to_merge = model_args.adapter_name_or_path[:-1]
             adapter_to_resume = model_args.adapter_name_or_path[-1]
@@ -175,10 +170,7 @@ def _setup_lora_tuning(
             logger.info_rank0(f"Merged {len(adapter_to_merge)} adapter(s).")
 
         if adapter_to_resume is not None:  # resume lora training
-            if model_args.use_unsloth:
-                model = load_unsloth_peft_model(config, model_args, is_trainable=is_trainable)
-            else:
-                model = PeftModel.from_pretrained(model, adapter_to_resume, is_trainable=is_trainable, **init_kwargs)
+            model = PeftModel.from_pretrained(model, adapter_to_resume, is_trainable=is_trainable, **init_kwargs)
 
         logger.info_rank0("Loaded adapter(s): {}".format(",".join(model_args.adapter_name_or_path)))
 
@@ -218,16 +210,12 @@ def _setup_lora_tuning(
             "modules_to_save": finetuning_args.additional_target,
         }
 
-        if model_args.use_unsloth:
-            model = get_unsloth_peft_model(model, model_args, peft_kwargs)
-        else:
-
-            lora_config = LoraConfig(
-                task_type=TaskType.CAUSAL_LM,
-                inference_mode=False,
-                **peft_kwargs,
-            )
-            model = get_peft_model(model, lora_config)
+        lora_config = LoraConfig(
+            task_type=TaskType.CAUSAL_LM,
+            inference_mode=False,
+            **peft_kwargs,
+        )
+        model = get_peft_model(model, lora_config)
 
     if is_trainable and cast_trainable_params_to_fp32:
         for param in filter(lambda p: p.requires_grad, model.parameters()):

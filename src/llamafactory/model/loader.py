@@ -23,7 +23,6 @@ from ..extras.misc import count_parameters, skip_check_imports, try_download_mod
 from .adapter import init_adapter
 from .model_utils.liger_kernel import apply_liger_kernel
 from .model_utils.misc import register_autoclass
-from .model_utils.unsloth import load_unsloth_pretrained_model
 from .patcher import patch_config, patch_model, patch_tokenizer
 
 
@@ -123,11 +122,6 @@ def load_model(
 
     model = None
     lazy_load = False
-    if model_args.use_unsloth:
-        if model_args.adapter_name_or_path is not None:
-            lazy_load = True
-        elif is_trainable:
-            model = load_unsloth_pretrained_model(config, model_args)
 
     if model is None and not lazy_load:
         init_kwargs["config"] = config

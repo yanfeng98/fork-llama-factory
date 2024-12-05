@@ -75,9 +75,6 @@ def create_modelcard_and_push(
     if data_args.dataset is not None:
         kwargs["dataset"] = data_args.dataset
 
-    if model_args.use_unsloth:
-        kwargs["tags"] = kwargs["tags"] + ["unsloth"]
-
     if not training_args.do_train:
         pass
     elif training_args.push_to_hub:
