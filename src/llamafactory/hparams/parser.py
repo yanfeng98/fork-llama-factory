@@ -92,10 +92,6 @@ def _verify_model_args(
         if model_args.adapter_name_or_path is not None and len(model_args.adapter_name_or_path) != 1:
             raise ValueError("Quantized model only accepts a single adapter. Merge them first.")
 
-    if data_args.template == "yi" and model_args.use_fast_tokenizer:
-        logger.warning_rank0("We should use slow tokenizer for the Yi models. Change `use_fast_tokenizer` to False.")
-        model_args.use_fast_tokenizer = False
-
 
 def _check_extra_dependencies(
     model_args: "ModelArguments",
