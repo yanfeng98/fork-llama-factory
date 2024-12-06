@@ -98,5 +98,7 @@ llamafactory-cli export examples/merge_lora/llama3_gptq.yaml
 #### FSDP+QLoRA 微调
 
 ```bash
-bash examples/extras/fsdp_qlora/train.sh
+accelerate launch \
+    --config_file examples/accelerate/fsdp_config.yaml \
+    src/train.py examples/extras/fsdp_qlora/qwen_lora_pt.yaml
 ```
