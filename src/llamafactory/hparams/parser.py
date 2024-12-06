@@ -130,11 +130,6 @@ def get_train_args(args: Optional[Dict[str, Any]] = None) -> _TRAIN_CLS:
 
     # Check arguments
 
-    if finetuning_args.stage != "sft":
-
-        if data_args.train_on_prompt or data_args.mask_history:
-            raise ValueError("`train_on_prompt` or `mask_history` cannot be set as True except SFT.")
-
     if training_args.parallel_mode == ParallelMode.NOT_DISTRIBUTED:
         raise ValueError("Please launch distributed training with `llamafactory-cli` or `torchrun`.")
 

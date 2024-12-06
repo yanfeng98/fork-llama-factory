@@ -218,9 +218,6 @@ def get_template_and_fix_tokenizer(tokenizer: "PreTrainedTokenizer", data_args: 
         if template is None:
             raise ValueError(f"Template {data_args.template} does not exist.")
 
-    if data_args.train_on_prompt and template.efficient_eos:
-        raise ValueError("Current template does not support `train_on_prompt`.")
-
     stop_words = template.stop_words
     if template.replace_eos:
         if not stop_words:

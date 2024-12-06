@@ -233,27 +233,6 @@ def get_dataset(
     r"""
     Gets the train dataset and optionally gets the evaluation dataset.
     """
-    # Load tokenized dataset
-    if data_args.tokenized_path is not None:
-        if has_tokenized_data(data_args.tokenized_path):
-            logger.warning_rank0("Loading dataset from disk will ignore other data arguments.")
-            dataset_dict: "DatasetDict" = load_from_disk(data_args.tokenized_path)
-            logger.info_rank0(f"Loaded tokenized dataset from {data_args.tokenized_path}.")
-
-            dataset_module: Dict[str, "Dataset"] = {}
-            if "train" in dataset_dict:
-                dataset_module["train_dataset"] = dataset_dict["train"]
-
-            if "validation" in dataset_dict:
-                dataset_module["eval_dataset"] = dataset_dict["validation"]
-
-            if data_args.streaming:
-                dataset_module = {k: v.to_iterable_dataset() for k, v in dataset_module.items()}
-
-            return dataset_module
-
-        if data_args.streaming:
-            raise ValueError("Turn off `streaming` when saving dataset to disk.")
 
     # Load and preprocess dataset
     with training_args.main_process_first(desc="load dataset"):
@@ -285,14 +264,6 @@ def get_dataset(
                 dataset_dict["validation"] = eval_dataset
 
             dataset_dict = DatasetDict(dataset_dict)
-
-        if data_args.tokenized_path is not None:
-            if training_args.should_save:
-                dataset_dict.save_to_disk(data_args.tokenized_path)
-                logger.info_rank0(f"Tokenized dataset saved at {data_args.tokenized_path}.")
-                logger.info_rank0(f"Please restart the training with `tokenized_path: {data_args.tokenized_path}`.")
-
-            sys.exit(0)
 
         dataset_module = {}
         if "train" in dataset_dict:

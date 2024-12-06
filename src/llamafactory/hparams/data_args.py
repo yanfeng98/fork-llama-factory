@@ -41,21 +41,9 @@ class DataArguments:
         default="data",
         metadata={"help": "Path to the folder containing the datasets."},
     )
-    image_dir: Optional[str] = field(
-        default=None,
-        metadata={"help": "Path to the folder containing the images or videos. Defaults to `dataset_dir`."},
-    )
     cutoff_len: int = field(
         default=2048,
         metadata={"help": "The cutoff length of the tokenized inputs in the dataset."},
-    )
-    train_on_prompt: bool = field(
-        default=False,
-        metadata={"help": "Whether or not to disable the mask on the prompt."},
-    )
-    mask_history: bool = field(
-        default=False,
-        metadata={"help": "Whether or not to mask the history and train on the last turn only."},
     )
     streaming: bool = field(
         default=False,
@@ -93,10 +81,6 @@ class DataArguments:
         default=None,
         metadata={"help": "Number of beams to use for evaluation. This argument will be passed to `model.generate`"},
     )
-    ignore_pad_token_for_loss: bool = field(
-        default=True,
-        metadata={"help": "Whether or not to ignore the tokens corresponding to the pad label in loss computation."},
-    )
     val_size: float = field(
         default=0.0,
         metadata={"help": "Size of the development set, should be an integer or a float in range `[0,1)`."},
@@ -104,16 +88,6 @@ class DataArguments:
     packing: Optional[bool] = field(
         default=None,
         metadata={"help": "Enable sequences packing in training. Will automatically enable in pre-training."},
-    )
-    tokenized_path: Optional[str] = field(
-        default=None,
-        metadata={
-            "help": (
-                "Path to save or load the tokenized datasets. "
-                "If tokenized_path not exists, it will save the tokenized datasets. "
-                "If tokenized_path exists, it will load the tokenized datasets."
-            )
-        },
     )
 
     def __post_init__(self):
@@ -124,9 +98,6 @@ class DataArguments:
 
         self.dataset = split_arg(self.dataset)
         self.eval_dataset = split_arg(self.eval_dataset)
-
-        if self.image_dir is None:
-            self.image_dir = self.dataset_dir
 
         if self.dataset is None and self.val_size > 1e-6:
             raise ValueError("Cannot specify `val_size` if `dataset` is None.")
@@ -150,6 +121,3 @@ class DataArguments:
 
         if self.streaming and self.max_samples is not None:
             raise ValueError("`max_samples` is incompatible with `streaming`.")
-
-        if self.mask_history and self.train_on_prompt:
-            raise ValueError("`mask_history` is incompatible with `train_on_prompt`.")
