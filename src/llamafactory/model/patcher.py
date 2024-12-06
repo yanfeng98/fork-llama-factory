@@ -17,8 +17,7 @@ from types import MethodType
 from typing import TYPE_CHECKING, Any, Dict
 
 import torch
-from peft import PeftModel
-from transformers import PreTrainedModel, PreTrainedTokenizerBase, is_torch_npu_available
+from transformers import PreTrainedModel, PreTrainedTokenizerBase
 from transformers.integrations import is_deepspeed_zero3_enabled
 from transformers.modeling_utils import is_fsdp_enabled
 
@@ -63,10 +62,6 @@ def patch_config(
         else:
             model_args.compute_dtype = infer_optim_dtype(model_dtype=getattr(config, "torch_dtype", None))
 
-    if is_torch_npu_available():
-        use_jit_compile = os.environ.get("JIT_COMPILE", "0").lower() in ["true", "1"]
-        torch.npu.set_compile_mode(jit_compile=use_jit_compile)
-
     configure_attn_implementation(config, model_args, is_trainable)
     configure_rope(config, model_args, is_trainable)
     configure_longlora(config, model_args, is_trainable)
@@ -84,9 +79,6 @@ def patch_config(
 
     if getattr(config, "model_type", None) == "qwen2" and is_trainable and model_args.flash_attn == "fa2":
         setattr(config, "use_cache", False)  # qwen2 does not support use_cache when using flash attn
-
-    if "LlavaLlamaForCausalLM" in getattr(config, "architectures", []):
-        raise ValueError("Please download llava models with hf-compatible format: https://huggingface.co/llava-hf")
 
     # deepspeed zero3 is not compatible with low_cpu_mem_usage
     init_kwargs["low_cpu_mem_usage"] = model_args.low_cpu_mem_usage and (not is_deepspeed_zero3_enabled())

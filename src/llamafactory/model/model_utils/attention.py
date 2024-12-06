@@ -15,7 +15,6 @@
 from typing import TYPE_CHECKING
 
 from transformers.utils import is_flash_attn_2_available, is_torch_sdpa_available
-from transformers.utils.versions import require_version
 
 from ...extras import logging
 
@@ -32,21 +31,6 @@ logger = logging.get_logger(__name__)
 def configure_attn_implementation(
     config: "PretrainedConfig", model_args: "ModelArguments", is_trainable: bool
 ) -> None:
-    if getattr(config, "model_type", None) == "gemma2" and is_trainable:
-        if model_args.flash_attn == "auto" or model_args.flash_attn == "fa2":
-            if is_flash_attn_2_available():
-                require_version("transformers>=4.42.4", "To fix: pip install transformers>=4.42.4")
-                require_version("flash_attn>=2.6.3", "To fix: pip install flash_attn>=2.6.3")
-                if model_args.flash_attn != "fa2":
-                    logger.warning_rank0("Gemma-2 should use flash attention 2, change `flash_attn` to fa2.")
-                    model_args.flash_attn = "fa2"
-            else:
-                logger.warning_rank0("FlashAttention-2 is not installed, use eager attention.")
-                model_args.flash_attn = "disabled"
-        elif model_args.flash_attn == "sdpa":
-            logger.warning_rank0(
-                "Gemma-2 should use soft-capping attention, while the SDPA attention does not support it."
-            )
 
     if model_args.flash_attn == "auto":
         return
@@ -69,17 +53,11 @@ def configure_attn_implementation(
     else:
         raise NotImplementedError(f"Unknown attention type: {model_args.flash_attn}")
 
-    if getattr(config, "model_type", None) == "internlm2":  # special case for custom models
-        setattr(config, "attn_implementation", requested_attn_implementation)
-    else:
-        setattr(config, "_attn_implementation", requested_attn_implementation)
+    setattr(config, "_attn_implementation", requested_attn_implementation)
 
 
 def print_attn_implementation(config: "PretrainedConfig") -> None:
-    if getattr(config, "model_type", None) == "internlm2":  # special case for custom models
-        attn_implementation = getattr(config, "attn_implementation", None)
-    else:
-        attn_implementation = getattr(config, "_attn_implementation", None)
+    attn_implementation = getattr(config, "_attn_implementation", None)
 
     if attn_implementation == "flash_attention_2":
         logger.info_rank0("Using FlashAttention-2 for faster training and inference.")

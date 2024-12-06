@@ -184,10 +184,6 @@ class ModelArguments(QuantizationArguments, ExportArguments):
         default=False,
         metadata={"help": "Whether or not to randomly initialize the model weights."},
     )
-    infer_backend: Literal["huggingface"] = field(
-        default="huggingface",
-        metadata={"help": "Backend engine used at inference."},
-    )
     offload_folder: str = field(
         default="offload",
         metadata={"help": "Path to offload model weights."},

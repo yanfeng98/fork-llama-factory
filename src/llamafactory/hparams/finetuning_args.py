@@ -96,21 +96,9 @@ class FinetuningArguments(LoraArguments):
         default=True,
         metadata={"help": "Whether ot not to freeze vision tower in MLLM training."},
     )
-    train_mm_proj_only: bool = field(
-        default=False,
-        metadata={"help": "Whether or not to train the multimodal projector for MLLM only."},
-    )
-    compute_accuracy: bool = field(
-        default=False,
-        metadata={"help": "Whether or not to compute the token-level accuracy at evaluation."},
-    )
     plot_loss: bool = field(
         default=False,
         metadata={"help": "Whether or not to save the training loss curves."},
-    )
-    include_effective_tokens_per_second: bool = field(
-        default=False,
-        metadata={"help": "Whether or not to compute effective tokens per second."},
     )
 
     def __post_init__(self):
@@ -122,12 +110,9 @@ class FinetuningArguments(LoraArguments):
         self.lora_alpha: int = self.lora_alpha or self.lora_rank * 2
         self.lora_target: List[str] = split_arg(self.lora_target)
         self.additional_target: Optional[List[str]] = split_arg(self.additional_target)
-        self.freeze_vision_tower = self.freeze_vision_tower or self.train_mm_proj_only
+        self.freeze_vision_tower = self.freeze_vision_tower
 
         assert self.finetuning_type in ["lora", "full"], "Invalid fine-tuning method."
-
-        if self.train_mm_proj_only and self.finetuning_type != "full":
-            raise ValueError("`train_mm_proj_only` is only valid for full training.")
 
         if self.finetuning_type != "lora":
             if self.loraplus_lr_ratio is not None:
