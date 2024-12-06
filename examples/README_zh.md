@@ -29,6 +29,10 @@ FORCE_TORCHRUN=1 NNODES=2 NODE_RANK=1 MASTER_ADDR=192.168.0.1 MASTER_PORT=29500 
 #### 使用 DeepSpeed ZeRO-3 平均分配显存
 
 ```bash
+FORCE_TORCHRUN=1 llamafactory-cli train examples/train_lora/qwen_lora_pt_ds0.yaml
+```
+
+```bash
 FORCE_TORCHRUN=1 llamafactory-cli train examples/train_lora/qwen_lora_pt_ds3.yaml
 ```
 
