@@ -32,8 +32,7 @@ class DatasetAttr:
     # basic configs
     load_from: Literal["hf_hub", "ms_hub", "om_hub", "script", "file"]
     dataset_name: str
-    formatting: Literal["alpaca", "sharegpt"] = "alpaca"
-    ranking: bool = False
+    formatting: Literal["alpaca"] = "alpaca"
     # extra configs
     subset: Optional[str] = None
     split: str = "train"
@@ -50,19 +49,6 @@ class DatasetAttr:
     kto_tag: Optional[str] = None
     # alpaca columns
     prompt: Optional[str] = "instruction"
-    query: Optional[str] = "input"
-    response: Optional[str] = "output"
-    history: Optional[str] = None
-    # sharegpt columns
-    messages: Optional[str] = "conversations"
-    # sharegpt tags
-    role_tag: Optional[str] = "from"
-    content_tag: Optional[str] = "value"
-    user_tag: Optional[str] = "human"
-    assistant_tag: Optional[str] = "gpt"
-    observation_tag: Optional[str] = "observation"
-    function_tag: Optional[str] = "function_call"
-    system_tag: Optional[str] = "system"
 
     def __repr__(self) -> str:
         return self.dataset_name
@@ -128,34 +114,18 @@ def get_dataset_list(dataset_names: Optional[Sequence[str]], dataset_dir: str) -
             dataset_attr = DatasetAttr("file", dataset_name=dataset_info[name]["file_name"])
 
         dataset_attr.set_attr("formatting", dataset_info[name], default="alpaca")
-        dataset_attr.set_attr("ranking", dataset_info[name], default=False)
         dataset_attr.set_attr("subset", dataset_info[name])
         dataset_attr.set_attr("split", dataset_info[name], default="train")
         dataset_attr.set_attr("folder", dataset_info[name])
         dataset_attr.set_attr("num_samples", dataset_info[name])
 
         if "columns" in dataset_info[name]:
-            column_names = ["system", "tools", "images", "videos", "chosen", "rejected", "kto_tag"]
+            column_names = []
             if dataset_attr.formatting == "alpaca":
-                column_names.extend(["prompt", "query", "response", "history"])
-            else:
-                column_names.extend(["messages"])
+                column_names.extend(["prompt"])
 
             for column_name in column_names:
                 dataset_attr.set_attr(column_name, dataset_info[name]["columns"])
-
-        if dataset_attr.formatting == "sharegpt" and "tags" in dataset_info[name]:
-            tag_names = (
-                "role_tag",
-                "content_tag",
-                "user_tag",
-                "assistant_tag",
-                "observation_tag",
-                "function_tag",
-                "system_tag",
-            )
-            for tag in tag_names:
-                dataset_attr.set_attr(tag, dataset_info[name]["tags"])
 
         dataset_list.append(dataset_attr)
 
