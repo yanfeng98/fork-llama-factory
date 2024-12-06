@@ -15,45 +15,6 @@
 from dataclasses import dataclass, field
 from typing import List, Literal, Optional
 
-
-@dataclass
-class FreezeArguments:
-    r"""
-    Arguments pertaining to the freeze (partial-parameter) training.
-    """
-
-    freeze_trainable_layers: int = field(
-        default=2,
-        metadata={
-            "help": (
-                "The number of trainable layers for freeze (partial-parameter) fine-tuning. "
-                "Positive numbers mean the last n layers are set as trainable, "
-                "negative numbers mean the first n layers are set as trainable."
-            )
-        },
-    )
-    freeze_trainable_modules: str = field(
-        default="all",
-        metadata={
-            "help": (
-                "Name(s) of trainable modules for freeze (partial-parameter) fine-tuning. "
-                "Use commas to separate multiple modules. "
-                "Use `all` to specify all the available modules."
-            )
-        },
-    )
-    freeze_extra_modules: Optional[str] = field(
-        default=None,
-        metadata={
-            "help": (
-                "Name(s) of modules apart from hidden layers to be set as trainable "
-                "for freeze (partial-parameter) fine-tuning. "
-                "Use commas to separate multiple modules."
-            )
-        },
-    )
-
-
 @dataclass
 class LoraArguments:
     r"""
@@ -114,7 +75,7 @@ class LoraArguments:
     )
 
 @dataclass
-class FinetuningArguments(FreezeArguments, LoraArguments):
+class FinetuningArguments(LoraArguments):
     r"""
     Arguments pertaining to which techniques we are going to fine-tuning with.
     """
@@ -127,7 +88,7 @@ class FinetuningArguments(FreezeArguments, LoraArguments):
         default="sft",
         metadata={"help": "Which stage will be performed in training."},
     )
-    finetuning_type: Literal["lora", "freeze", "full"] = field(
+    finetuning_type: Literal["lora", "full"] = field(
         default="lora",
         metadata={"help": "Which fine-tuning method to use."},
     )
@@ -158,14 +119,12 @@ class FinetuningArguments(FreezeArguments, LoraArguments):
                 return [item.strip() for item in arg.split(",")]
             return arg
 
-        self.freeze_trainable_modules: List[str] = split_arg(self.freeze_trainable_modules)
-        self.freeze_extra_modules: Optional[List[str]] = split_arg(self.freeze_extra_modules)
         self.lora_alpha: int = self.lora_alpha or self.lora_rank * 2
         self.lora_target: List[str] = split_arg(self.lora_target)
         self.additional_target: Optional[List[str]] = split_arg(self.additional_target)
         self.freeze_vision_tower = self.freeze_vision_tower or self.train_mm_proj_only
 
-        assert self.finetuning_type in ["lora", "freeze", "full"], "Invalid fine-tuning method."
+        assert self.finetuning_type in ["lora", "full"], "Invalid fine-tuning method."
 
         if self.train_mm_proj_only and self.finetuning_type != "full":
             raise ValueError("`train_mm_proj_only` is only valid for full training.")
