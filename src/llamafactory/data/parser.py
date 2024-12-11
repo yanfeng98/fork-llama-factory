@@ -38,15 +38,6 @@ class DatasetAttr:
     split: str = "train"
     folder: Optional[str] = None
     num_samples: Optional[int] = None
-    # common columns
-    system: Optional[str] = None
-    tools: Optional[str] = None
-    images: Optional[str] = None
-    videos: Optional[str] = None
-    # rlhf columns
-    chosen: Optional[str] = None
-    rejected: Optional[str] = None
-    kto_tag: Optional[str] = None
     # alpaca columns
     prompt: Optional[str] = "instruction"
 
@@ -64,22 +55,16 @@ def get_dataset_list(dataset_names: Optional[Sequence[str]], dataset_dir: str) -
     if dataset_names is None:
         dataset_names = []
 
-    if dataset_dir == "ONLINE":
+    config_path = os.path.join(dataset_dir, DATA_CONFIG)
+
+    try:
+        with open(config_path) as f:
+            dataset_info = json.load(f)
+    except Exception as err:
+        if len(dataset_names) != 0:
+            raise ValueError(f"Cannot open {config_path} due to {str(err)}.")
+
         dataset_info = None
-    else:
-        if dataset_dir.startswith("REMOTE:"):
-            config_path = cached_file(path_or_repo_id=dataset_dir[7:], filename=DATA_CONFIG, repo_type="dataset")
-        else:
-            config_path = os.path.join(dataset_dir, DATA_CONFIG)
-
-        try:
-            with open(config_path) as f:
-                dataset_info = json.load(f)
-        except Exception as err:
-            if len(dataset_names) != 0:
-                raise ValueError(f"Cannot open {config_path} due to {str(err)}.")
-
-            dataset_info = None
 
     dataset_list: List["DatasetAttr"] = []
     for name in dataset_names:

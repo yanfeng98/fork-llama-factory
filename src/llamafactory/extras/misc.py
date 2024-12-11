@@ -133,13 +133,6 @@ def get_peak_memory() -> Tuple[int, int]:
         return 0, 0
 
 
-def has_tokenized_data(path: "os.PathLike") -> bool:
-    r"""
-    Checks if the path has a tokenized dataset.
-    """
-    return os.path.isdir(path) and len(os.listdir(path)) > 0
-
-
 def infer_optim_dtype(model_dtype: "torch.dtype") -> "torch.dtype":
     r"""
     Infers the optimal dtype according to the model_dtype and device compatibility.

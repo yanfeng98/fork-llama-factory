@@ -35,9 +35,6 @@ SLOTS = Sequence[Union[str, Set[str], Dict[str, str]]]
 @unique
 class Role(str, Enum):
     USER = "user"
-    ASSISTANT = "assistant"
-    SYSTEM = "system"
-    OBSERVATION = "observation"
 
 
 class DatasetModule(TypedDict):

@@ -13,16 +13,14 @@
 # limitations under the License.
 
 import os
-import sys
-from typing import TYPE_CHECKING, Dict, Literal, Optional, Sequence, Union
+from typing import TYPE_CHECKING, Literal, Optional, Sequence, Union
 
 import numpy as np
-from datasets import DatasetDict, load_dataset, load_from_disk
+from datasets import DatasetDict, load_dataset
 from transformers.utils.versions import require_version
 
 from ..extras import logging
 from ..extras.constants import FILEEXT2TYPE
-from ..extras.misc import has_tokenized_data
 from .aligner import align_dataset
 from .data_utils import merge_dataset, split_dataset
 from .parser import get_dataset_list
@@ -156,7 +154,6 @@ def _get_merged_dataset(
     model_args: "ModelArguments",
     data_args: "DataArguments",
     training_args: "Seq2SeqTrainingArguments",
-    stage: Literal["pt"],
 ) -> Optional[Union["Dataset", "IterableDataset"]]:
     r"""
     Gets the merged datasets in the standard format.
@@ -177,9 +174,7 @@ def _get_preprocessed_dataset(
     data_args: "DataArguments",
     training_args: "Seq2SeqTrainingArguments",
     stage: Literal["pt"],
-    template: "Template",
     tokenizer: "PreTrainedTokenizer",
-    processor: Optional["ProcessorMixin"] = None,
     is_eval: bool = False,
 ) -> Optional[Union["Dataset", "IterableDataset"]]:
     r"""
@@ -189,7 +184,7 @@ def _get_preprocessed_dataset(
         return None
 
     preprocess_func, print_function = get_preprocess_and_print_func(
-        data_args, stage, template, tokenizer, processor, do_generate=(training_args.predict_with_generate and is_eval)
+        data_args, stage, tokenizer
     )
     column_names = list(next(iter(dataset)).keys())
     kwargs = {}
@@ -222,13 +217,11 @@ def _get_preprocessed_dataset(
 
 
 def get_dataset(
-    template: "Template",
     model_args: "ModelArguments",
     data_args: "DataArguments",
     training_args: "Seq2SeqTrainingArguments",
     stage: Literal["pt"],
     tokenizer: "PreTrainedTokenizer",
-    processor: Optional["ProcessorMixin"] = None,
 ) -> "DatasetModule":
     r"""
     Gets the train dataset and optionally gets the evaluation dataset.
@@ -236,15 +229,15 @@ def get_dataset(
 
     # Load and preprocess dataset
     with training_args.main_process_first(desc="load dataset"):
-        dataset = _get_merged_dataset(data_args.dataset, model_args, data_args, training_args, stage)
-        eval_dataset = _get_merged_dataset(data_args.eval_dataset, model_args, data_args, training_args, stage)
+        dataset = _get_merged_dataset(data_args.dataset, model_args, data_args, training_args)
+        eval_dataset = _get_merged_dataset(data_args.eval_dataset, model_args, data_args, training_args)
 
     with training_args.main_process_first(desc="pre-process dataset"):
         dataset = _get_preprocessed_dataset(
-            dataset, data_args, training_args, stage, template, tokenizer, processor, is_eval=False
+            dataset, data_args, training_args, stage, tokenizer, is_eval=False
         )
         eval_dataset = _get_preprocessed_dataset(
-            eval_dataset, data_args, training_args, stage, template, tokenizer, processor, is_eval=True
+            eval_dataset, data_args, training_args, stage, tokenizer, is_eval=True
         )
 
         if data_args.val_size > 1e-6:

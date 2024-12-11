@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import TYPE_CHECKING, Dict
+from typing import TYPE_CHECKING
 
 from ..extras import logging
 
@@ -20,34 +20,15 @@ from ..extras import logging
 if TYPE_CHECKING:
     from transformers import PreTrainedTokenizer
 
-    from ..hparams import DataArguments
-
 
 logger = logging.get_logger(__name__)
 
 
-TEMPLATES: Dict[str, "Template"] = {}
-
-
-def _register_template(
-    name: str,
-) -> None:
-    TEMPLATES[name] = name
-
-
-def get_template_and_fix_tokenizer(tokenizer: "PreTrainedTokenizer", data_args: "DataArguments") -> "Template":
+def get_template_and_fix_tokenizer(tokenizer: "PreTrainedTokenizer") -> None:
     r"""
     Gets chat template and fixes the tokenizer.
     """
-    template = TEMPLATES["empty"]  # placeholder
 
     if tokenizer.pad_token_id is None:
         tokenizer.pad_token = tokenizer.eos_token
         logger.info_rank0(f"Add pad token: {tokenizer.pad_token}")
-
-    return template
-
-
-_register_template(
-    name="empty",
-)

@@ -29,10 +29,7 @@ if TYPE_CHECKING:
 def get_preprocess_and_print_func(
     data_args: "DataArguments",
     stage: Literal["pt"],
-    template: "Template",
     tokenizer: "PreTrainedTokenizer",
-    processor: Optional["ProcessorMixin"],
-    do_generate: bool = False,
 ) -> Tuple[Callable, Callable]:
     if stage == "pt":
         preprocess_func = partial(

@@ -14,13 +14,12 @@
 
 from .data_utils import Role, split_dataset
 from .loader import get_dataset
-from .template import TEMPLATES, get_template_and_fix_tokenizer
+from .template import get_template_and_fix_tokenizer
 
 
 __all__ = [
     "Role",
     "split_dataset",
     "get_dataset",
-    "TEMPLATES",
     "get_template_and_fix_tokenizer",
 ]
