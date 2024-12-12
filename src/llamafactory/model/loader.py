@@ -97,7 +97,6 @@ def load_model(
     model_args: "ModelArguments",
     finetuning_args: "FinetuningArguments",
     is_trainable: bool = False,
-    add_valuehead: bool = False,
 ) -> "PreTrainedModel":
     r"""
     Loads pretrained model.
