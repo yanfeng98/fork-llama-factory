@@ -73,8 +73,6 @@ TRAINING_STAGES = {
     "Pre-Training": "pt",
 }
 
-SUPPORTED_CLASS_FOR_S2ATTN = {"llama"}
-
 VIDEO_PLACEHOLDER = os.environ.get("VIDEO_PLACEHOLDER", "<video>")
 
 VISION_MODELS = set()
