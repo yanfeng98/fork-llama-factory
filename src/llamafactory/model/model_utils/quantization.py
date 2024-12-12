@@ -49,9 +49,6 @@ class QuantizationMethod(str, Enum):
     """
 
     BITS_AND_BYTES = "bitsandbytes"
-    GPTQ = "gptq"
-    AWQ = "awq"
-    AQLM = "aqlm"
     QUANTO = "quanto"
     EETQ = "eetq"
     HQQ = "hqq"
