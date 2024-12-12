@@ -99,9 +99,6 @@ def _check_extra_dependencies(
     training_args: Optional["Seq2SeqTrainingArguments"] = None,
 ) -> None:
 
-    if model_args.enable_liger_kernel:
-        require_version("liger-kernel", "To fix: pip install liger-kernel")
-
     if finetuning_args.plot_loss:
         require_version("matplotlib", "To fix: pip install matplotlib")
 

@@ -15,13 +15,11 @@
 from typing import TYPE_CHECKING, Any, Dict, Optional, TypedDict
 
 import torch
-from transformers import AutoConfig, AutoModelForCausalLM, AutoModelForVision2Seq, AutoProcessor, AutoTokenizer
-from trl import AutoModelForCausalLMWithValueHead
+from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
 
 from ..extras import logging
 from ..extras.misc import count_parameters, skip_check_imports, try_download_model_from_other_hub
 from .adapter import init_adapter
-from .model_utils.liger_kernel import apply_liger_kernel
 from .model_utils.misc import register_autoclass
 from .patcher import patch_config, patch_model, patch_tokenizer
 
@@ -104,7 +102,6 @@ def load_model(
     init_kwargs = _get_init_kwargs(model_args)
     config = load_config(model_args)
     patch_config(config, tokenizer, model_args, init_kwargs, is_trainable)
-    apply_liger_kernel(config, model_args, is_trainable, require_logits=(finetuning_args.stage not in ["pt"]))
 
     model = None
     lazy_load = False

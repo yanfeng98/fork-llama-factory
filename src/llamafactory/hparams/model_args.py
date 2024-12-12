@@ -156,10 +156,6 @@ class ModelArguments(QuantizationArguments, ExportArguments):
         default=False,
         metadata={"help": "Enable shift short attention (S^2-Attn) proposed by LongLoRA."},
     )
-    enable_liger_kernel: bool = field(
-        default=False,
-        metadata={"help": "Whether or not to enable liger kernel for faster training."},
-    )
     moe_aux_loss_coef: Optional[float] = field(
         default=None,
         metadata={"help": "Coefficient of the auxiliary router loss in mixture-of-experts model."},

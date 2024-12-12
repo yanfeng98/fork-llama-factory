@@ -154,7 +154,7 @@ $ pip install --upgrade pip -i https://pypi.tuna.tsinghua.edu.cn/simple/
 $ pip install -e ".[torch,metrics,deepspeed,bitsandbytes,modelscope]" -i https://pypi.tuna.tsinghua.edu.cn/simple/
 ```
 
-可选的额外依赖项：torch、deepspeed、liger-kernel、bitsandbytes、hqq、eetq、gptq、awq、aqlm、modelscope、openmind
+可选的额外依赖项：torch、deepspeed、bitsandbytes、hqq、eetq、gptq、awq、aqlm、modelscope、openmind
 
 > [!TIP]
 > 遇到包冲突时，可使用 `pip install --no-deps -e .` 解决。
