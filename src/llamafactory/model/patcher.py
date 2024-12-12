@@ -62,16 +62,11 @@ def patch_config(
 
     configure_attn_implementation(config, model_args, is_trainable)
     configure_rope(config, model_args, is_trainable)
-    configure_quantization(config, tokenizer, model_args, init_kwargs)
+    configure_quantization(tokenizer, model_args, init_kwargs)
 
     if model_args.use_cache and not is_trainable:
         setattr(config, "use_cache", True)
         logger.info_rank0("Using KV cache for faster generation.")
-
-    if getattr(config, "model_type", None) == "qwen":
-        setattr(config, "use_flash_attn", model_args.flash_attn == "fa2")
-        for dtype_name, dtype in [("fp16", torch.float16), ("bf16", torch.bfloat16), ("fp32", torch.float32)]:
-            setattr(config, dtype_name, model_args.compute_dtype == dtype)
 
     if getattr(config, "model_type", None) == "qwen2" and is_trainable and model_args.flash_attn == "fa2":
         setattr(config, "use_cache", False)  # qwen2 does not support use_cache when using flash attn

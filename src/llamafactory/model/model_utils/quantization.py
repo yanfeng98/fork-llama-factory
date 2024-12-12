@@ -99,49 +99,18 @@ def _get_quantization_dataset(tokenizer: "PreTrainedTokenizer", model_args: "Mod
 
 
 def configure_quantization(
-    config: "PretrainedConfig",
     tokenizer: "PreTrainedTokenizer",
     model_args: "ModelArguments",
     init_kwargs: Dict[str, Any],
 ) -> None:
-    r"""
-    Priority: PTQ-quantized (train/infer) > AutoGPTQ (export) > On-the-fly quantization (train/infer)
-    """
-    if getattr(config, "quantization_config", None):  # ptq
-        if model_args.quantization_bit is not None:
-            logger.warning_rank0("`quantization_bit` will not affect on the PTQ-quantized models.")
 
-        if is_deepspeed_zero3_enabled() or is_fsdp_enabled():
-            raise ValueError("DeepSpeed ZeRO-3 or FSDP is incompatible with PTQ-quantized models.")
-
-        quantization_config: Dict[str, Any] = getattr(config, "quantization_config", None)
-        quant_method = quantization_config.get("quant_method", "")
-
-        if quant_method == QuantizationMethod.GPTQ:
-            require_version("auto_gptq>=0.5.0", "To fix: pip install auto_gptq>=0.5.0")
-            quantization_config.pop("disable_exllama", None)  # remove deprecated args
-            quantization_config["use_exllama"] = False  # disable exllama
-
-        if quant_method == QuantizationMethod.AWQ:
-            require_version("autoawq", "To fix: pip install autoawq")
-
-        if quant_method == QuantizationMethod.AQLM:
-            require_version("aqlm>=1.1.0", "To fix: pip install aqlm[gpu]>=1.1.0")
-            quantization_config["bits"] = 2
-
-        quant_bits = quantization_config.get("bits", "?")
-        logger.info_rank0(f"Loading {quant_bits}-bit {quant_method.upper()}-quantized model.")
-
-    elif model_args.export_quantization_bit is not None:  # auto-gptq
+    if model_args.export_quantization_bit is not None:  # auto-gptq
         if model_args.export_quantization_bit not in [8, 4, 3, 2]:
             raise ValueError("AutoGPTQ only accepts 2/3/4/8-bit quantization.")
 
         require_version("optimum>=1.17.0", "To fix: pip install optimum>=1.17.0")
         require_version("auto_gptq>=0.5.0", "To fix: pip install auto_gptq>=0.5.0")
         from accelerate.utils import get_max_memory
-
-        if getattr(config, "model_type", None) == "chatglm":
-            raise ValueError("ChatGLM model is not supported yet.")
 
         init_kwargs["quantization_config"] = GPTQConfig(
             bits=model_args.export_quantization_bit,
