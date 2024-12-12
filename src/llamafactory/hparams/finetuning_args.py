@@ -88,10 +88,6 @@ class FinetuningArguments(LoraArguments):
         default="lora",
         metadata={"help": "Which fine-tuning method to use."},
     )
-    freeze_vision_tower: bool = field(
-        default=True,
-        metadata={"help": "Whether ot not to freeze vision tower in MLLM training."},
-    )
     plot_loss: bool = field(
         default=False,
         metadata={"help": "Whether or not to save the training loss curves."},
@@ -106,7 +102,6 @@ class FinetuningArguments(LoraArguments):
         self.lora_alpha: int = self.lora_alpha or self.lora_rank * 2
         self.lora_target: List[str] = split_arg(self.lora_target)
         self.additional_target: Optional[List[str]] = split_arg(self.additional_target)
-        self.freeze_vision_tower = self.freeze_vision_tower
 
         assert self.finetuning_type in ["lora", "full"], "Invalid fine-tuning method."
 

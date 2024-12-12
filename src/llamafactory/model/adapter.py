@@ -21,7 +21,6 @@ from transformers.modeling_utils import is_fsdp_enabled
 
 from ..extras import logging
 from .model_utils.misc import find_all_linear_modules
-from .model_utils.quantization import QuantizationMethod
 
 if TYPE_CHECKING:
     from transformers import PretrainedConfig, PreTrainedModel
@@ -51,7 +50,6 @@ def _setup_full_tuning(
 
 
 def _setup_lora_tuning(
-    config: "PretrainedConfig",
     model: "PreTrainedModel",
     model_args: "ModelArguments",
     finetuning_args: "FinetuningArguments",
@@ -101,7 +99,7 @@ def _setup_lora_tuning(
 
     if is_trainable and adapter_to_resume is None:  # create new lora weights while training
         if len(finetuning_args.lora_target) == 1 and finetuning_args.lora_target[0] == "all":
-            target_modules = find_all_linear_modules(model, finetuning_args.freeze_vision_tower)
+            target_modules = find_all_linear_modules(model)
         else:
             target_modules = finetuning_args.lora_target
 
@@ -175,7 +173,7 @@ def init_adapter(
         _setup_full_tuning(model, is_trainable, cast_trainable_params_to_fp32)
     elif finetuning_args.finetuning_type == "lora":
         model = _setup_lora_tuning(
-            config, model, model_args, finetuning_args, is_trainable, cast_trainable_params_to_fp32
+            model, model_args, finetuning_args, is_trainable, cast_trainable_params_to_fp32
         )
     else:
         raise NotImplementedError(f"Unknown finetuning type: {finetuning_args.finetuning_type}.")

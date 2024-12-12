@@ -24,18 +24,11 @@ if TYPE_CHECKING:
 logger = logging.get_logger(__name__)
 
 
-def find_all_linear_modules(model: "PreTrainedModel", freeze_vision_tower: bool) -> List[str]:
+def find_all_linear_modules(model: "PreTrainedModel") -> List[str]:
     r"""
     Finds all available modules to apply lora or galore.
     """
-    model_type = getattr(model.config, "model_type", None)
     forbidden_modules = {"lm_head"}
-
-    if freeze_vision_tower:
-        if model_type == "qwen2_vl":
-            forbidden_modules.add("visual")
-        else:
-            forbidden_modules.add("vision_tower")
 
     module_names = set()
     for name, module in model.named_modules():
