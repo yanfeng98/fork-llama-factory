@@ -22,8 +22,6 @@ from transformers.modeling_utils import is_fsdp_enabled
 from ..extras import logging
 from .model_utils.misc import find_all_linear_modules
 from .model_utils.quantization import QuantizationMethod
-from .model_utils.visual import get_forbidden_modules, patch_target_modules
-
 
 if TYPE_CHECKING:
     from transformers import PretrainedConfig, PreTrainedModel
@@ -36,7 +34,6 @@ logger = logging.get_logger(__name__)
 
 def _setup_full_tuning(
     model: "PreTrainedModel",
-    finetuning_args: "FinetuningArguments",
     is_trainable: bool,
     cast_trainable_params_to_fp32: bool,
 ) -> None:
@@ -44,7 +41,7 @@ def _setup_full_tuning(
         return
 
     logger.info_rank0("Fine-tuning method: Full")
-    forbidden_modules = get_forbidden_modules(model.config, finetuning_args)
+    forbidden_modules = set()
     for name, param in model.named_parameters():
         if not any(forbidden_module in name for forbidden_module in forbidden_modules):
             if cast_trainable_params_to_fp32:
@@ -62,7 +59,7 @@ def _setup_lora_tuning(
     cast_trainable_params_to_fp32: bool,
 ) -> "PeftModel":
     if is_trainable:
-        logger.info_rank0("Fine-tuning method: {}".format("DoRA" if finetuning_args.use_dora else "LoRA"))
+        logger.info_rank0("Fine-tuning method: {}".format("LoRA"))
 
     adapter_to_resume = None
 
@@ -108,15 +105,6 @@ def _setup_lora_tuning(
         else:
             target_modules = finetuning_args.lora_target
 
-        target_modules = patch_target_modules(model.config, finetuning_args, target_modules)
-
-        if (
-            finetuning_args.use_dora
-            and getattr(model, "quantization_method", None) is not None
-            and getattr(model, "quantization_method", None) != QuantizationMethod.BITS_AND_BYTES
-        ):
-            raise ValueError("DoRA is not compatible with PTQ-quantized models.")
-
         if model_args.resize_vocab and finetuning_args.additional_target is None:
             input_embeddings = model.get_input_embeddings()
             output_embeddings = model.get_output_embeddings()
@@ -134,7 +122,6 @@ def _setup_lora_tuning(
             "lora_alpha": finetuning_args.lora_alpha,
             "lora_dropout": finetuning_args.lora_dropout,
             "use_rslora": finetuning_args.use_rslora,
-            "use_dora": finetuning_args.use_dora,
             "modules_to_save": finetuning_args.additional_target,
         }
 
@@ -185,7 +172,7 @@ def init_adapter(
         cast_trainable_params_to_fp32 = True
 
     if finetuning_args.finetuning_type == "full":
-        _setup_full_tuning(model, finetuning_args, is_trainable, cast_trainable_params_to_fp32)
+        _setup_full_tuning(model, is_trainable, cast_trainable_params_to_fp32)
     elif finetuning_args.finetuning_type == "lora":
         model = _setup_lora_tuning(
             config, model, model_args, finetuning_args, is_trainable, cast_trainable_params_to_fp32

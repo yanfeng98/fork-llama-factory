@@ -65,10 +65,6 @@ class LoraArguments:
         default=False,
         metadata={"help": "Whether or not to use the rank stabilization scaling factor for LoRA layer."},
     )
-    use_dora: bool = field(
-        default=False,
-        metadata={"help": "Whether or not to use the weight-decomposed lora method (DoRA)."},
-    )
     create_new_adapter: bool = field(
         default=False,
         metadata={"help": "Whether or not to create a new adapter with randomly initialized weight."},
@@ -120,6 +116,3 @@ class FinetuningArguments(LoraArguments):
 
             if self.use_rslora:
                 raise ValueError("`use_rslora` is only valid for LoRA training.")
-
-            if self.use_dora:
-                raise ValueError("`use_dora` is only valid for LoRA training.")

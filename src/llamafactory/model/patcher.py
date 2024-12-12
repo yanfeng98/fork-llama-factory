@@ -28,9 +28,6 @@ from .model_utils.checkpointing import prepare_model_for_training
 from .model_utils.embedding import resize_embedding_layer
 from .model_utils.quantization import configure_quantization
 from .model_utils.rope import configure_rope
-from .model_utils.visual import (
-    autocast_projector_dtype,
-)
 
 
 if TYPE_CHECKING:
@@ -110,7 +107,6 @@ def patch_model(
 
     if is_trainable:
         prepare_model_for_training(model, model_args)
-        autocast_projector_dtype(model, model_args)
 
     print_attn_implementation(model.config)
 
