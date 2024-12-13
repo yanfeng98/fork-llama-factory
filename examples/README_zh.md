@@ -67,7 +67,7 @@ llamafactory-cli train examples/train_qlora/llama3_lora_sft_aqlm.yaml
 #### 在单机上进行指令监督微调
 
 ```bash
-FORCE_TORCHRUN=1 llamafactory-cli train examples/train_full/llama3_full_sft_ds3.yaml
+FORCE_TORCHRUN=1 llamafactory-cli train examples/train_full/qwen_full_pt_ds3.yaml
 ```
 
 #### 在多机上进行指令监督微调
