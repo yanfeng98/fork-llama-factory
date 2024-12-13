@@ -14,11 +14,8 @@
 
 from .data_utils import split_dataset
 from .loader import get_dataset
-from .template import get_template_and_fix_tokenizer
-
 
 __all__ = [
     "split_dataset",
     "get_dataset",
-    "get_template_and_fix_tokenizer",
 ]

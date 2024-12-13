@@ -17,7 +17,8 @@ from typing import TYPE_CHECKING, List, Optional
 
 from transformers import DataCollatorForLanguageModeling
 
-from ...data import get_dataset, get_template_and_fix_tokenizer
+from ...data import get_dataset
+from ...extras import logging
 from ...extras.ploting import plot_loss
 from ...model import load_model, load_tokenizer
 from ..trainer_utils import create_modelcard_and_push
@@ -29,6 +30,8 @@ if TYPE_CHECKING:
 
     from ...hparams import DataArguments, FinetuningArguments, ModelArguments
 
+logger = logging.get_logger(__name__)
+
 
 def run_pt(
     model_args: "ModelArguments",
@@ -39,7 +42,9 @@ def run_pt(
 ):
     tokenizer_module = load_tokenizer(model_args)
     tokenizer = tokenizer_module["tokenizer"]
-    get_template_and_fix_tokenizer(tokenizer)
+    if tokenizer.pad_token_id is None:
+        tokenizer.pad_token = tokenizer.eos_token
+        logger.info_rank0(f"Add pad token: {tokenizer.pad_token}")
     dataset_module = get_dataset(model_args, data_args, training_args, stage="pt", **tokenizer_module)
     model = load_model(tokenizer, model_args, finetuning_args, training_args.do_train)
     data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=False)

@@ -17,7 +17,6 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional
 import torch
 from transformers import PreTrainedModel
 
-from ..data import get_template_and_fix_tokenizer
 from ..extras import logging
 from ..hparams import get_infer_args, get_train_args
 from ..model import load_model, load_tokenizer
@@ -53,7 +52,9 @@ def export_model(args: Optional[Dict[str, Any]] = None) -> None:
 
     tokenizer_module = load_tokenizer(model_args)
     tokenizer = tokenizer_module["tokenizer"]
-    get_template_and_fix_tokenizer(tokenizer)
+    if tokenizer.pad_token_id is None:
+        tokenizer.pad_token = tokenizer.eos_token
+        logger.info_rank0(f"Add pad token: {tokenizer.pad_token}")
     model = load_model(tokenizer, model_args, finetuning_args)  # must after fixing tokenizer to resize vocab
 
     if getattr(model, "quantization_method", None) is not None and model_args.adapter_name_or_path is not None:

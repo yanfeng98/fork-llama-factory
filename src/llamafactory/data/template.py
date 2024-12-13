@@ -14,21 +14,12 @@
 
 from typing import TYPE_CHECKING
 
-from ..extras import logging
+
 
 
 if TYPE_CHECKING:
     from transformers import PreTrainedTokenizer
 
 
-logger = logging.get_logger(__name__)
 
 
-def get_template_and_fix_tokenizer(tokenizer: "PreTrainedTokenizer") -> None:
-    r"""
-    Gets chat template and fixes the tokenizer.
-    """
-
-    if tokenizer.pad_token_id is None:
-        tokenizer.pad_token = tokenizer.eos_token
-        logger.info_rank0(f"Add pad token: {tokenizer.pad_token}")
