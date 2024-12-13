@@ -13,30 +13,23 @@
 # limitations under the License.
 
 from functools import partial
-from typing import TYPE_CHECKING, Callable, Literal, Optional, Tuple
+from typing import TYPE_CHECKING, Callable, Tuple
 
 from .processors.pretrain import preprocess_pretrain_dataset
 from .processors.unsupervised import print_unsupervised_dataset_example
 
 
 if TYPE_CHECKING:
-    from transformers import PreTrainedTokenizer, ProcessorMixin
+    from transformers import PreTrainedTokenizer
 
     from ..hparams import DataArguments
-    from .template import Template
 
 
 def get_preprocess_and_print_func(
     data_args: "DataArguments",
-    stage: Literal["pt"],
     tokenizer: "PreTrainedTokenizer",
 ) -> Tuple[Callable, Callable]:
-    if stage == "pt":
-        preprocess_func = partial(
-            preprocess_pretrain_dataset,
-            tokenizer=tokenizer,
-            data_args=data_args,
-        )
-        print_function = partial(print_unsupervised_dataset_example, tokenizer=tokenizer)
+    preprocess_func = partial(preprocess_pretrain_dataset, tokenizer=tokenizer, data_args=data_args)
+    print_function = partial(print_unsupervised_dataset_example, tokenizer=tokenizer)
 
     return preprocess_func, print_function

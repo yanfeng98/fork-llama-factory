@@ -12,13 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .data_utils import Role, split_dataset
+from .data_utils import split_dataset
 from .loader import get_dataset
 from .template import get_template_and_fix_tokenizer
 
 
 __all__ = [
-    "Role",
     "split_dataset",
     "get_dataset",
     "get_template_and_fix_tokenizer",

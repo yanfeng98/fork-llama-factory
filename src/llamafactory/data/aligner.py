@@ -12,13 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
 from functools import partial
 from typing import TYPE_CHECKING, Any, Dict, Union
 
 from ..extras import logging
-from .data_utils import Role
-
 
 if TYPE_CHECKING:
     from datasets import Dataset, IterableDataset
@@ -38,17 +35,10 @@ def convert_alpaca(
     r"""
     Converts alpaca format dataset to the standard format.
     """
-    prompt = []
-    query = []
-    if dataset_attr.prompt and example[dataset_attr.prompt]:
-        query.append(example[dataset_attr.prompt])
 
-    prompt.append({"role": Role.USER.value, "content": "\n".join(query)})  # "prompt\nquery"
+    prompt = [{"role": "user", "content": example[dataset_attr.prompt]}]
 
-    output = {
-        "_prompt": prompt,
-    }
-    return output
+    return {"_prompt": prompt}
 
 
 def align_dataset(
@@ -60,14 +50,9 @@ def align_dataset(
     r"""
     Aligned dataset:
         _prompt: [{"role": "user", "content": "..."}] * (2T - 1)
-        _response: [{"role": "assistant", "content": "..."}] * N (N > 1 for ranking dataset)
-        _system: "..."
-        _tools: "...",
-        _images: [],
-        _videos: [],
     """
-    if dataset_attr.formatting == "alpaca":
-        convert_func = partial(convert_alpaca, dataset_attr=dataset_attr)
+
+    convert_func = partial(convert_alpaca, dataset_attr=dataset_attr)
 
     column_names = list(next(iter(dataset)).keys())
     kwargs = {}

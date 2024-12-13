@@ -29,12 +29,11 @@ from .preprocess import get_preprocess_and_print_func
 
 if TYPE_CHECKING:
     from datasets import Dataset, IterableDataset
-    from transformers import PreTrainedTokenizer, ProcessorMixin, Seq2SeqTrainingArguments
+    from transformers import PreTrainedTokenizer, Seq2SeqTrainingArguments
 
     from ..hparams import DataArguments, ModelArguments
     from .data_utils import DatasetModule
     from .parser import DatasetAttr
-    from .template import Template
 
 
 logger = logging.get_logger(__name__)
@@ -53,11 +52,6 @@ def _load_single_dataset(
     data_path, data_name, data_dir, data_files = None, None, None, None
     if dataset_attr.load_from in ["hf_hub", "ms_hub", "om_hub"]:
         data_path = dataset_attr.dataset_name
-        data_name = dataset_attr.subset
-        data_dir = dataset_attr.folder
-
-    elif dataset_attr.load_from == "script":
-        data_path = os.path.join(data_args.dataset_dir, dataset_attr.dataset_name)
         data_name = dataset_attr.subset
         data_dir = dataset_attr.folder
 
@@ -184,7 +178,7 @@ def _get_preprocessed_dataset(
         return None
 
     preprocess_func, print_function = get_preprocess_and_print_func(
-        data_args, stage, tokenizer
+        data_args, tokenizer
     )
     column_names = list(next(iter(dataset)).keys())
     kwargs = {}

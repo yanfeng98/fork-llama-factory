@@ -12,35 +12,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from enum import Enum, unique
 from typing import TYPE_CHECKING, Dict, List, Optional, Sequence, Set, TypedDict, Union
 
 from datasets import DatasetDict, concatenate_datasets, interleave_datasets
 
 from ..extras import logging
 
-
 if TYPE_CHECKING:
     from datasets import Dataset, IterableDataset
 
     from ..hparams import DataArguments
-
 
 logger = logging.get_logger(__name__)
 
 
 SLOTS = Sequence[Union[str, Set[str], Dict[str, str]]]
 
-
-@unique
-class Role(str, Enum):
-    USER = "user"
-
-
 class DatasetModule(TypedDict):
     train_dataset: Optional[Union["Dataset", "IterableDataset"]]
     eval_dataset: Optional[Union["Dataset", "IterableDataset"]]
-
 
 def merge_dataset(
     all_datasets: List[Union["Dataset", "IterableDataset"]], data_args: "DataArguments", seed: int

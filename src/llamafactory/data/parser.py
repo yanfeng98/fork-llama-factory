@@ -17,8 +17,6 @@ import os
 from dataclasses import dataclass
 from typing import Any, Dict, List, Literal, Optional, Sequence
 
-from transformers.utils import cached_file
-
 from ..extras.constants import DATA_CONFIG
 from ..extras.misc import use_modelscope, use_openmind
 
@@ -30,7 +28,7 @@ class DatasetAttr:
     """
 
     # basic configs
-    load_from: Literal["hf_hub", "ms_hub", "om_hub", "script", "file"]
+    load_from: Literal["hf_hub", "ms_hub", "om_hub", "file"]
     dataset_name: str
     formatting: Literal["alpaca"] = "alpaca"
     # extra configs
@@ -93,8 +91,6 @@ def get_dataset_list(dataset_names: Optional[Sequence[str]], dataset_dir: str) -
                 dataset_attr = DatasetAttr("om_hub", dataset_name=dataset_info[name]["om_hub_url"])
             else:
                 dataset_attr = DatasetAttr("hf_hub", dataset_name=dataset_info[name]["hf_hub_url"])
-        elif "script_url" in dataset_info[name]:
-            dataset_attr = DatasetAttr("script", dataset_name=dataset_info[name]["script_url"])
         else:
             dataset_attr = DatasetAttr("file", dataset_name=dataset_info[name]["file_name"])
 
@@ -103,14 +99,7 @@ def get_dataset_list(dataset_names: Optional[Sequence[str]], dataset_dir: str) -
         dataset_attr.set_attr("split", dataset_info[name], default="train")
         dataset_attr.set_attr("folder", dataset_info[name])
         dataset_attr.set_attr("num_samples", dataset_info[name])
-
-        if "columns" in dataset_info[name]:
-            column_names = []
-            if dataset_attr.formatting == "alpaca":
-                column_names.extend(["prompt"])
-
-            for column_name in column_names:
-                dataset_attr.set_attr(column_name, dataset_info[name]["columns"])
+        dataset_attr.set_attr("prompt", dataset_info[name]["columns"])
 
         dataset_list.append(dataset_attr)
 
