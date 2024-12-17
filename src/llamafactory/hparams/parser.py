@@ -73,7 +73,6 @@ def _set_transformers_logging() -> None:
 
 def _verify_model_args(
     model_args: "ModelArguments",
-    data_args: "DataArguments",
     finetuning_args: "FinetuningArguments",
 ) -> None:
     if model_args.adapter_name_or_path is not None and finetuning_args.finetuning_type != "lora":
@@ -94,7 +93,6 @@ def _verify_model_args(
 
 
 def _check_extra_dependencies(
-    model_args: "ModelArguments",
     finetuning_args: "FinetuningArguments",
     training_args: Optional["Seq2SeqTrainingArguments"] = None,
 ) -> None:
@@ -136,33 +134,18 @@ def get_train_args(args: Optional[Dict[str, Any]] = None) -> _TRAIN_CLS:
     if training_args.max_steps == -1 and data_args.streaming:
         raise ValueError("Please specify `max_steps` in streaming mode.")
 
-    if training_args.do_train and data_args.dataset is None:
-        raise ValueError("Please specify dataset for training.")
-
-    if (training_args.do_eval or training_args.do_predict) and (
-        data_args.eval_dataset is None and data_args.val_size < 1e-6
-    ):
-        raise ValueError("Please specify dataset for evaluation.")
-
-    if training_args.predict_with_generate:
-        if is_deepspeed_zero3_enabled():
-            raise ValueError("`predict_with_generate` is incompatible with DeepSpeed ZeRO-3.")
-
-        if data_args.eval_dataset is None:
-            raise ValueError("Cannot use `predict_with_generate` if `eval_dataset` is None.")
-
     if training_args.do_train and model_args.quantization_device_map == "auto":
         raise ValueError("Cannot use device map for quantized models in training.")
 
     if finetuning_args.pure_bf16:
-        if not (is_torch_bf16_gpu_available() or (is_torch_npu_available() and torch.npu.is_bf16_supported())):
+        if not is_torch_bf16_gpu_available():
             raise ValueError("This device does not support `pure_bf16`.")
 
         if is_deepspeed_zero3_enabled():
             raise ValueError("`pure_bf16` is incompatible with DeepSpeed ZeRO-3.")
 
-    _verify_model_args(model_args, data_args, finetuning_args)
-    _check_extra_dependencies(model_args, finetuning_args, training_args)
+    _verify_model_args(model_args, finetuning_args)
+    _check_extra_dependencies(finetuning_args, training_args)
 
     if (
         training_args.do_train
@@ -244,8 +227,8 @@ def get_infer_args(args: Optional[Dict[str, Any]] = None) -> _INFER_CLS:
     if data_args.template is None:
         raise ValueError("Please specify which `template` to use.")
 
-    _verify_model_args(model_args, data_args, finetuning_args)
-    _check_extra_dependencies(model_args, finetuning_args)
+    _verify_model_args(model_args, finetuning_args)
+    _check_extra_dependencies(finetuning_args)
 
     if model_args.export_dir is not None and model_args.export_device == "cpu":
         model_args.device_map = {"": torch.device("cpu")}
