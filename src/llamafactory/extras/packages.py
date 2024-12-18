@@ -46,21 +46,8 @@ def _get_package_version(name: str) -> "Version":
     except Exception:
         return version.parse("0.0.0")
 
-
-def is_pyav_available():
-    return _is_package_available("av")
-
 def is_matplotlib_available():
     return _is_package_available("matplotlib")
-
-
-def is_pillow_available():
-    return _is_package_available("PIL")
-
-
-@lru_cache
-def is_transformers_version_greater_than(content: str):
-    return _get_package_version("transformers") >= version.parse(content)
 
 
 @lru_cache
