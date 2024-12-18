@@ -53,14 +53,6 @@ class LoraArguments:
             )
         },
     )
-    loraplus_lr_ratio: Optional[float] = field(
-        default=None,
-        metadata={"help": "LoRA plus learning rate ratio (lr_B / lr_A)."},
-    )
-    loraplus_lr_embedding: float = field(
-        default=1e-6,
-        metadata={"help": "LoRA plus learning rate for lora embedding layers."},
-    )
     use_rslora: bool = field(
         default=False,
         metadata={"help": "Whether or not to use the rank stabilization scaling factor for LoRA layer."},
@@ -106,8 +98,6 @@ class FinetuningArguments(LoraArguments):
         assert self.finetuning_type in ["lora", "full"], "Invalid fine-tuning method."
 
         if self.finetuning_type != "lora":
-            if self.loraplus_lr_ratio is not None:
-                raise ValueError("`loraplus_lr_ratio` is only valid for LoRA training.")
 
             if self.use_rslora:
                 raise ValueError("`use_rslora` is only valid for LoRA training.")

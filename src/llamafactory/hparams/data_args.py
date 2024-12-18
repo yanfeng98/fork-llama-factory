@@ -99,9 +99,6 @@ class DataArguments:
         self.dataset = split_arg(self.dataset)
         self.eval_dataset = split_arg(self.eval_dataset)
 
-        if self.dataset is None and self.val_size > 1e-6:
-            raise ValueError("Cannot specify `val_size` if `dataset` is None.")
-
         if self.eval_dataset is not None and self.val_size > 1e-6:
             raise ValueError("Cannot specify `val_size` if `eval_dataset` is not None.")
 
