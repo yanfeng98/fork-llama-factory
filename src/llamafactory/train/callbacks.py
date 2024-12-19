@@ -14,17 +14,13 @@
 
 import json
 import os
-import signal
-import sys
 import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
 from typing import TYPE_CHECKING, Any, Dict, Optional
 
-import transformers
-from peft import PeftModel
-from transformers import ProcessorMixin, TrainerCallback
-from transformers.trainer_utils import PREFIX_CHECKPOINT_DIR, has_length
+from transformers import TrainerCallback
+from transformers.trainer_utils import has_length
 from typing_extensions import override
 
 from ..extras import logging
@@ -53,35 +49,6 @@ class LogCallback(TrainerCallback):
         # Status
         self.do_train = False
 
-    def _reset(self, max_steps: int = 0) -> None:
-        self.start_time = time.time()
-        self.cur_steps = 0
-        self.max_steps = max_steps
-        self.elapsed_time = ""
-        self.remaining_time = ""
-
-    def _timing(self, cur_steps: int) -> None:
-        cur_time = time.time()
-        elapsed_time = cur_time - self.start_time
-        avg_time_per_step = elapsed_time / cur_steps if cur_steps != 0 else 0
-        remaining_time = (self.max_steps - cur_steps) * avg_time_per_step
-        self.cur_steps = cur_steps
-        self.elapsed_time = str(timedelta(seconds=int(elapsed_time)))
-        self.remaining_time = str(timedelta(seconds=int(remaining_time)))
-
-    def _write_log(self, output_dir: str, logs: Dict[str, Any]) -> None:
-        with open(os.path.join(output_dir, TRAINER_LOG), "a", encoding="utf-8") as f:
-            f.write(json.dumps(logs) + "\n")
-
-    def _create_thread_pool(self, output_dir: str) -> None:
-        os.makedirs(output_dir, exist_ok=True)
-        self.thread_pool = ThreadPoolExecutor(max_workers=1)
-
-    def _close_thread_pool(self) -> None:
-        if self.thread_pool is not None:
-            self.thread_pool.shutdown(wait=True)
-            self.thread_pool = None
-
     @override
     def on_init_end(self, args: "TrainingArguments", state: "TrainerState", control: "TrainerControl", **kwargs):
         if (
@@ -99,19 +66,16 @@ class LogCallback(TrainerCallback):
             self._reset(max_steps=state.max_steps)
             self._create_thread_pool(output_dir=args.output_dir)
 
-    @override
-    def on_train_end(self, args: "TrainingArguments", state: "TrainerState", control: "TrainerControl", **kwargs):
-        self._close_thread_pool()
+    def _reset(self, max_steps: int = 0) -> None:
+        self.start_time = time.time()
+        self.cur_steps = 0
+        self.max_steps = max_steps
+        self.elapsed_time = ""
+        self.remaining_time = ""
 
-    @override
-    def on_evaluate(self, args: "TrainingArguments", state: "TrainerState", control: "TrainerControl", **kwargs):
-        if not self.do_train:
-            self._close_thread_pool()
-
-    @override
-    def on_predict(self, args: "TrainingArguments", state: "TrainerState", control: "TrainerControl", **kwargs):
-        if not self.do_train:
-            self._close_thread_pool()
+    def _create_thread_pool(self, output_dir: str) -> None:
+        os.makedirs(output_dir, exist_ok=True)
+        self.thread_pool = ThreadPoolExecutor(max_workers=1)
 
     @override
     def on_log(self, args: "TrainingArguments", state: "TrainerState", control: "TrainerControl", **kwargs):
@@ -146,6 +110,38 @@ class LogCallback(TrainerCallback):
 
         if self.thread_pool is not None:
             self.thread_pool.submit(self._write_log, args.output_dir, logs)
+
+    def _timing(self, cur_steps: int) -> None:
+        cur_time = time.time()
+        elapsed_time = cur_time - self.start_time
+        avg_time_per_step = elapsed_time / cur_steps if cur_steps != 0 else 0
+        remaining_time = (self.max_steps - cur_steps) * avg_time_per_step
+        self.cur_steps = cur_steps
+        self.elapsed_time = str(timedelta(seconds=int(elapsed_time)))
+        self.remaining_time = str(timedelta(seconds=int(remaining_time)))
+
+    def _write_log(self, output_dir: str, logs: Dict[str, Any]) -> None:
+        with open(os.path.join(output_dir, TRAINER_LOG), "a", encoding="utf-8") as f:
+            f.write(json.dumps(logs) + "\n")
+
+    @override
+    def on_train_end(self, args: "TrainingArguments", state: "TrainerState", control: "TrainerControl", **kwargs):
+        self._close_thread_pool()
+
+    def _close_thread_pool(self) -> None:
+        if self.thread_pool is not None:
+            self.thread_pool.shutdown(wait=True)
+            self.thread_pool = None
+
+    @override
+    def on_evaluate(self, args: "TrainingArguments", state: "TrainerState", control: "TrainerControl", **kwargs):
+        if not self.do_train:
+            self._close_thread_pool()
+
+    @override
+    def on_predict(self, args: "TrainingArguments", state: "TrainerState", control: "TrainerControl", **kwargs):
+        if not self.do_train:
+            self._close_thread_pool()
 
     @override
     def on_prediction_step(
