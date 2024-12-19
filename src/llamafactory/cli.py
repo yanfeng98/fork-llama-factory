@@ -62,7 +62,11 @@ class Command(str, Enum):
 
 
 def main():
+    # 1. sys.argv: ['env/bin/llamafactory-cli', 'train', 'examples/train_lora/qwen_lora_pt.yaml']
+    # print(f"1. sys.argv: {sys.argv}\n")
     command = sys.argv.pop(1) if len(sys.argv) != 1 else Command.HELP
+    # 2. sys.argv: ['env/bin/llamafactory-cli', 'examples/train_lora/qwen_lora_pt.yaml']
+    # print(f"2. sys.argv: {sys.argv}\n")
     if command == Command.ENV:
         print_env()
     elif command == Command.EXPORT:

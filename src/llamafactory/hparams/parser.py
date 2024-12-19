@@ -46,6 +46,8 @@ _INFER_CLS = Tuple[ModelArguments, DataArguments, FinetuningArguments]
 
 
 def _parse_args(parser: "HfArgumentParser", args: Optional[Dict[str, Any]] = None) -> Tuple[Any]:
+    # 3. sys.argv: ['env/bin/llamafactory-cli', 'examples/train_lora/qwen_lora_pt.yaml']
+    # print(f"3. sys.argv: {sys.argv}\n")
     if args is not None:
         return parser.parse_dict(args)
 
