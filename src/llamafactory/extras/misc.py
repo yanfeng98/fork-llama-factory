@@ -149,8 +149,7 @@ def skip_check_imports() -> None:
     r"""
     Avoids flash attention import error in custom model files.
     """
-    if os.environ.get("FORCE_CHECK_IMPORTS", "0").lower() not in ["true", "1"]:
-        transformers.dynamic_module_utils.check_imports = get_relative_imports
+    transformers.dynamic_module_utils.check_imports = get_relative_imports
 
 
 def try_download_model_from_other_hub(model_args: "ModelArguments") -> str:

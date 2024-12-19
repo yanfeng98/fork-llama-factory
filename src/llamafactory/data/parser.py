@@ -50,8 +50,6 @@ def get_dataset_list(dataset_names: Optional[Sequence[str]], dataset_dir: str) -
     r"""
     Gets the attributes of the datasets.
     """
-    if dataset_names is None:
-        dataset_names = []
 
     config_path = os.path.join(dataset_dir, DATA_CONFIG)
 
@@ -59,23 +57,10 @@ def get_dataset_list(dataset_names: Optional[Sequence[str]], dataset_dir: str) -
         with open(config_path) as f:
             dataset_info = json.load(f)
     except Exception as err:
-        if len(dataset_names) != 0:
-            raise ValueError(f"Cannot open {config_path} due to {str(err)}.")
-
-        dataset_info = None
+        raise ValueError(f"Cannot open {config_path} due to {str(err)}.")
 
     dataset_list: List["DatasetAttr"] = []
     for name in dataset_names:
-        if dataset_info is None:  # dataset_dir is ONLINE
-            if use_modelscope():
-                load_from = "ms_hub"
-            elif use_openmind():
-                load_from = "om_hub"
-            else:
-                load_from = "hf_hub"
-            dataset_attr = DatasetAttr(load_from, dataset_name=name)
-            dataset_list.append(dataset_attr)
-            continue
 
         if name not in dataset_info:
             raise ValueError(f"Undefined dataset {name} in {DATA_CONFIG}.")

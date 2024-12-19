@@ -202,10 +202,7 @@ def _get_preprocessed_dataset(
             print("eval example:" if is_eval else "training example:")
             print_function(next(iter(dataset)))
         except StopIteration:
-            if stage == "pt":
-                raise RuntimeError("Cannot find sufficient samples, consider increasing dataset size.")
-            else:
-                raise RuntimeError("Cannot find valid samples, check `data/README.md` for the data format.")
+            raise RuntimeError("Cannot find sufficient samples, consider increasing dataset size.")
 
     return dataset
 
