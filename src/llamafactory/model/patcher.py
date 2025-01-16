@@ -16,13 +16,17 @@ from types import MethodType
 from typing import TYPE_CHECKING, Any, Dict
 
 import torch
+from transformers.utils import (
+    is_torch_bf16_gpu_available,
+    is_torch_cuda_available,
+)
 from transformers import PreTrainedModel
 from transformers.integrations import is_deepspeed_zero3_enabled
 from transformers.modeling_utils import is_fsdp_enabled
+from transformers.utils import is_flash_attn_2_available, is_torch_sdpa_available
 
 from ..extras import logging
-from ..extras.misc import infer_optim_dtype
-from .model_utils.attention import configure_attn_implementation, print_attn_implementation
+from .model_utils.attention import print_attn_implementation
 from .model_utils.checkpointing import prepare_model_for_training
 from .model_utils.embedding import resize_embedding_layer
 from .model_utils.quantization import configure_quantization
@@ -34,6 +38,11 @@ if TYPE_CHECKING:
 
     from ..hparams import ModelArguments
 
+_is_fp16_available = is_torch_cuda_available()
+try:
+    _is_bf16_available = is_torch_bf16_gpu_available()
+except Exception:
+    _is_bf16_available = False
 
 logger = logging.get_logger(__name__)
 
@@ -78,6 +87,43 @@ def patch_config(
             if init_kwargs.get("device_map", None) == "auto":
                 init_kwargs["offload_folder"] = model_args.offload_folder
 
+def infer_optim_dtype(model_dtype: "torch.dtype") -> "torch.dtype":
+    r"""
+    Infers the optimal dtype according to the model_dtype and device compatibility.
+    """
+    if _is_bf16_available and model_dtype == torch.bfloat16:
+        return torch.bfloat16
+    elif _is_fp16_available:
+        return torch.float16
+    else:
+        return torch.float32
+
+def configure_attn_implementation(
+    config: "PretrainedConfig", model_args: "ModelArguments", is_trainable: bool
+) -> None:
+
+    if model_args.flash_attn == "auto":
+        return
+
+    elif model_args.flash_attn == "disabled":
+        requested_attn_implementation = "eager"
+
+    elif model_args.flash_attn == "sdpa":
+        if not is_torch_sdpa_available():
+            logger.warning_rank0("torch>=2.1.1 is required for SDPA attention.")
+            return
+
+        requested_attn_implementation = "sdpa"
+    elif model_args.flash_attn == "fa2":
+        if not is_flash_attn_2_available():
+            logger.warning_rank0("FlashAttention-2 is not installed.")
+            return
+
+        requested_attn_implementation = "flash_attention_2"
+    else:
+        raise NotImplementedError(f"Unknown attention type: {model_args.flash_attn}")
+
+    setattr(config, "_attn_implementation", requested_attn_implementation)
 
 def patch_model(
     model: "PreTrainedModel",

@@ -14,7 +14,7 @@
 
 from typing import TYPE_CHECKING
 
-from transformers.utils import is_flash_attn_2_available, is_torch_sdpa_available
+
 
 from ...extras import logging
 
@@ -28,32 +28,7 @@ if TYPE_CHECKING:
 logger = logging.get_logger(__name__)
 
 
-def configure_attn_implementation(
-    config: "PretrainedConfig", model_args: "ModelArguments", is_trainable: bool
-) -> None:
 
-    if model_args.flash_attn == "auto":
-        return
-
-    elif model_args.flash_attn == "disabled":
-        requested_attn_implementation = "eager"
-
-    elif model_args.flash_attn == "sdpa":
-        if not is_torch_sdpa_available():
-            logger.warning_rank0("torch>=2.1.1 is required for SDPA attention.")
-            return
-
-        requested_attn_implementation = "sdpa"
-    elif model_args.flash_attn == "fa2":
-        if not is_flash_attn_2_available():
-            logger.warning_rank0("FlashAttention-2 is not installed.")
-            return
-
-        requested_attn_implementation = "flash_attention_2"
-    else:
-        raise NotImplementedError(f"Unknown attention type: {model_args.flash_attn}")
-
-    setattr(config, "_attn_implementation", requested_attn_implementation)
 
 
 def print_attn_implementation(config: "PretrainedConfig") -> None:

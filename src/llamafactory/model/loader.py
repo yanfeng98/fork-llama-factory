@@ -121,15 +121,6 @@ def patch_tokenizer(tokenizer: "PreTrainedTokenizer") -> None:
     if "PreTrainedTokenizerBase" not in str(tokenizer._pad.__func__):
         tokenizer._pad = MethodType(PreTrainedTokenizerBase._pad, tokenizer)
 
-
-def load_config(model_args: "ModelArguments") -> "PretrainedConfig":
-    r"""
-    Loads model config.
-    """
-    init_kwargs = _get_init_kwargs(model_args)
-    return AutoConfig.from_pretrained(model_args.model_name_or_path, **init_kwargs)
-
-
 def load_model(
     tokenizer: "PreTrainedTokenizer",
     model_args: "ModelArguments",
@@ -192,3 +183,10 @@ def load_model(
             )
 
     return model
+
+def load_config(model_args: "ModelArguments") -> "PretrainedConfig":
+    r"""
+    Loads model config.
+    """
+    init_kwargs = _get_init_kwargs(model_args)
+    return AutoConfig.from_pretrained(model_args.model_name_or_path, **init_kwargs)

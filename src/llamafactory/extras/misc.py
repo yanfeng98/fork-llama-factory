@@ -16,11 +16,10 @@
 # limitations under the License.
 
 import os
-from typing import TYPE_CHECKING, Tuple
+from typing import Tuple
 
 import torch
 from transformers.utils import (
-    is_torch_bf16_gpu_available,
     is_torch_cuda_available,
     is_torch_mps_available,
     is_torch_npu_available,
@@ -29,13 +28,6 @@ from transformers.utils import (
 from transformers.utils.versions import require_version
 
 from . import logging
-
-
-_is_fp16_available = is_torch_cuda_available()
-try:
-    _is_bf16_available = is_torch_bf16_gpu_available()
-except Exception:
-    _is_bf16_available = False
 
 
 logger = logging.get_logger(__name__)
@@ -121,18 +113,6 @@ def get_peak_memory() -> Tuple[int, int]:
         return torch.cuda.max_memory_allocated(), torch.cuda.max_memory_reserved()
     else:
         return 0, 0
-
-
-def infer_optim_dtype(model_dtype: "torch.dtype") -> "torch.dtype":
-    r"""
-    Infers the optimal dtype according to the model_dtype and device compatibility.
-    """
-    if _is_bf16_available and model_dtype == torch.bfloat16:
-        return torch.bfloat16
-    elif _is_fp16_available:
-        return torch.float16
-    else:
-        return torch.float32
 
 
 def use_modelscope() -> bool:
