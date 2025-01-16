@@ -14,7 +14,6 @@
 
 from .loader import load_config, load_model, load_tokenizer
 from .model_utils.misc import find_all_linear_modules
-from .model_utils.quantization import QuantizationMethod
 
 
 __all__ = [
