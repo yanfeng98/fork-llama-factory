@@ -12,8 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .data_utils import split_dataset
-from .loader import get_dataset
+from .loader import get_dataset, split_dataset
 
 __all__ = [
     "split_dataset",
