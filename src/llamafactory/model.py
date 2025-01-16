@@ -15,10 +15,12 @@
 import os
 import math
 import random
+import inspect
 from enum import Enum, unique
 from types import MethodType
 from contextlib import nullcontext
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, TypedDict
+from functools import WRAPPER_ASSIGNMENTS, partial, wraps
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union, TypedDict, Callable
 
 import torch
 from transformers.utils import (
@@ -37,20 +39,19 @@ from transformers.dynamic_module_utils import get_relative_imports
 from transformers import PreTrainedTokenizerBase
 from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
 
-from ..extras import logging
-from ..extras.constants import FILEEXT2TYPE
-from ..extras.misc import get_current_device
-from .model_utils.attention import print_attn_implementation
-from .model_utils.checkpointing import prepare_model_for_training
-from ..extras.misc import count_parameters, use_modelscope, use_openmind
-from .adapter import init_adapter
-from .model_utils.misc import register_autoclass
+from peft import LoraConfig, LoraModel, PeftModel, TaskType, get_peft_model
+
+from .extras import logging
+from .extras.constants import FILEEXT2TYPE
+from .extras.constants import LAYERNORM_NAMES
+from .extras.misc import get_current_device
+from .extras.misc import count_parameters, use_modelscope, use_openmind
 
 
 if TYPE_CHECKING:
     from transformers import PretrainedConfig, PreTrainedTokenizer, ProcessorMixin
 
-    from ..hparams import FinetuningArguments, ModelArguments
+    from .hparams import FinetuningArguments, ModelArguments
 
 _is_fp16_available = is_torch_cuda_available()
 try:
@@ -517,3 +518,270 @@ def _noisy_mean_initialization(embed_weight: "torch.Tensor", num_new_tokens: int
     noise_weight = torch.empty_like(embed_weight[-num_new_tokens:])
     noise_weight.normal_(mean=0, std=(1.0 / math.sqrt(embedding_dim)))
     embed_weight[-num_new_tokens:] = avg_weight + noise_weight
+
+def prepare_model_for_training(model: "PreTrainedModel", model_args: "ModelArguments") -> None:
+    r"""
+    Includes:
+        (1) cast the layernorm in fp32
+        (2) make output embedding layer require grads
+        (3) add the upcasting of the lm_head in fp32
+    """
+    if model_args.upcast_layernorm:
+        logger.info_rank0("Upcasting layernorm weights in float32.")
+        for name, param in model.named_parameters():
+            if param.ndim == 1 and any(ln_name in name for ln_name in LAYERNORM_NAMES):
+                param.data = param.data.to(torch.float32)
+
+    if not model_args.disable_gradient_checkpointing:
+        if not getattr(model, "supports_gradient_checkpointing", False):
+            logger.warning_rank0("Current model does not support gradient checkpointing.")
+        else:
+            # use_reentrant=False might increase VRAM usage (have not been empirically verified yet)
+            # According to: https://github.com/huggingface/transformers/issues/28339
+            gradient_checkpointing_enable = partial(
+                _gradient_checkpointing_enable
+            )
+            model.gradient_checkpointing_enable = MethodType(gradient_checkpointing_enable, model)
+            model.gradient_checkpointing_enable(gradient_checkpointing_kwargs={"use_reentrant": True})
+            setattr(model.config, "use_cache", False)  # turn off when gradient checkpointing is enabled
+            logger.info_rank0("Gradient checkpointing enabled.")
+
+    if model_args.upcast_lmhead_output:
+        output_layer = model.get_output_embeddings()
+        if isinstance(output_layer, torch.nn.Linear) and output_layer.weight.dtype != torch.float32:
+            logger.info_rank0("Upcasting lm_head outputs in float32.")
+            output_layer.register_forward_hook(_fp32_forward_post_hook)
+
+def _gradient_checkpointing_enable(
+    self: "PreTrainedModel",
+    gradient_checkpointing_kwargs: Optional[Dict[str, Any]] = None,
+) -> None:
+    r"""
+    Activates gradient checkpointing for the current model.
+
+    Modification of the original method to enable gradient checkpointing for block-wise optimizer.
+    """
+    from torch.utils.checkpoint import checkpoint
+
+    if not self.supports_gradient_checkpointing:
+        raise ValueError(f"{self.__class__.__name__} does not support gradient checkpointing.")
+
+    if gradient_checkpointing_kwargs is None:
+        gradient_checkpointing_kwargs = {"use_reentrant": True}
+
+    gradient_checkpointing_func = partial(checkpoint, **gradient_checkpointing_kwargs)
+
+    gradient_checkpointing_func = get_custom_gradient_checkpointing_func(gradient_checkpointing_func)
+    if "value" in inspect.signature(self._set_gradient_checkpointing).parameters:  # old GC format
+        self.apply(partial(self._set_gradient_checkpointing, value=True))
+        self.enable_input_require_grads()
+        logger.warning_once("You are using the old GC format, some features (e.g. BAdam) will be invalid.")
+    else:  # have already enabled input require gradients
+        self._set_gradient_checkpointing(enable=True, gradient_checkpointing_func=gradient_checkpointing_func)
+
+def get_custom_gradient_checkpointing_func(gradient_checkpointing_func: Callable) -> Callable:
+    r"""
+    Only applies gradient checkpointing to trainable layers.
+    """
+
+    @wraps(gradient_checkpointing_func, assigned=WRAPPER_ASSIGNMENTS + ("__self__",))
+    def custom_gradient_checkpointing_func(func: Callable, *args: Union["torch.Tensor", Any], **kwargs):
+        module: "torch.nn.Module" = func.__self__
+
+        if any(param.requires_grad for param in module.parameters()):
+            for arg in args:
+                if torch.is_tensor(arg) and torch.is_floating_point(arg):
+                    arg.requires_grad_(True)
+
+        return gradient_checkpointing_func(func, *args, **kwargs)
+
+    return custom_gradient_checkpointing_func
+
+def _fp32_forward_post_hook(
+    module: "torch.nn.Module", args: Tuple["torch.Tensor"], output: "torch.Tensor"
+) -> "torch.Tensor":
+    return output.to(torch.float32)
+
+def print_attn_implementation(config: "PretrainedConfig") -> None:
+    attn_implementation = getattr(config, "_attn_implementation", None)
+
+    if attn_implementation == "flash_attention_2":
+        logger.info_rank0("Using FlashAttention-2 for faster training and inference.")
+    elif attn_implementation == "sdpa":
+        logger.info_rank0("Using torch SDPA for faster training and inference.")
+    else:
+        logger.info_rank0("Using vanilla attention implementation.")
+
+
+def register_autoclass(config: "PretrainedConfig", model: "PreTrainedModel", tokenizer: "PreTrainedTokenizer"):
+    if "AutoConfig" in getattr(config, "auto_map", {}):
+        config.__class__.register_for_auto_class()
+    if "AutoModelForCausalLM" in getattr(config, "auto_map", {}):
+        model.__class__.register_for_auto_class()
+    if "AutoTokenizer" in tokenizer.init_kwargs.get("auto_map", {}):
+        tokenizer.__class__.register_for_auto_class()
+
+def init_adapter(
+    config: "PretrainedConfig",
+    model: "PreTrainedModel",
+    model_args: "ModelArguments",
+    finetuning_args: "FinetuningArguments",
+    is_trainable: bool,
+) -> "PreTrainedModel":
+    r"""
+    Initializes the adapters.
+
+    Support full-parameter, freeze and LoRA training.
+
+    Note that the trainable parameters must be cast to float32.
+    """
+    if is_trainable and getattr(model, "quantization_method", None) is not None:
+        if finetuning_args.finetuning_type != "lora":
+            raise ValueError("Quantized models can only be used for the LoRA tuning.")
+
+    # cast trainable parameters to float32 if:
+    # 1. is_trainable and not pure_bf16 and not badam and quantization_bit is not None (qlora)
+    # 2. is_trainable and not pure_bf16 and not badam and not zero3 and not fsdp (zero3 or fsdp already in fp32)
+    cast_trainable_params_to_fp32 = False
+    if not is_trainable:
+        pass
+    elif finetuning_args.pure_bf16:
+        logger.info_rank0("Pure bf16 detected, remaining trainable params in half precision.")
+    elif model_args.quantization_bit is None and (is_deepspeed_zero3_enabled() or is_fsdp_enabled()):
+        logger.info_rank0("ZeRO3 / FSDP detected, remaining trainable params in float32.")
+    else:
+        logger.info_rank0("Upcasting trainable params to float32.")
+        cast_trainable_params_to_fp32 = True
+
+    if finetuning_args.finetuning_type == "full":
+        _setup_full_tuning(model, is_trainable, cast_trainable_params_to_fp32)
+    elif finetuning_args.finetuning_type == "lora":
+        model = _setup_lora_tuning(
+            model, model_args, finetuning_args, is_trainable, cast_trainable_params_to_fp32
+        )
+    else:
+        raise NotImplementedError(f"Unknown finetuning type: {finetuning_args.finetuning_type}.")
+
+    return model
+
+def _setup_full_tuning(
+    model: "PreTrainedModel",
+    is_trainable: bool,
+    cast_trainable_params_to_fp32: bool,
+) -> None:
+    if not is_trainable:
+        return
+
+    logger.info_rank0("Fine-tuning method: Full")
+    forbidden_modules = set()
+    for name, param in model.named_parameters():
+        if not any(forbidden_module in name for forbidden_module in forbidden_modules):
+            if cast_trainable_params_to_fp32:
+                param.data = param.data.to(torch.float32)
+        else:
+            param.requires_grad_(False)
+
+
+def _setup_lora_tuning(
+    model: "PreTrainedModel",
+    model_args: "ModelArguments",
+    finetuning_args: "FinetuningArguments",
+    is_trainable: bool,
+    cast_trainable_params_to_fp32: bool,
+) -> "PeftModel":
+    if is_trainable:
+        logger.info_rank0("Fine-tuning method: {}".format("LoRA"))
+
+    adapter_to_resume = None
+
+    if model_args.adapter_name_or_path is not None:
+        is_mergeable = True
+        if getattr(model, "quantization_method", None):  # merge lora in quantized model is unstable
+            assert len(model_args.adapter_name_or_path) == 1, "Quantized model only accepts a single adapter."
+            is_mergeable = False
+
+        if is_deepspeed_zero3_enabled():
+            assert len(model_args.adapter_name_or_path) == 1, "Cannot use multiple adapters in DeepSpeed ZeRO-3."
+            is_mergeable = False
+
+        if (is_trainable and not finetuning_args.create_new_adapter) or (not is_mergeable):
+            adapter_to_merge = model_args.adapter_name_or_path[:-1]
+            adapter_to_resume = model_args.adapter_name_or_path[-1]
+        else:
+            adapter_to_merge = model_args.adapter_name_or_path
+
+        init_kwargs = {
+            "subfolder": model_args.adapter_folder,
+            "offload_folder": model_args.offload_folder,
+            "cache_dir": model_args.cache_dir,
+            "revision": model_args.model_revision,
+            "token": model_args.hf_hub_token,
+        }
+
+        for adapter in adapter_to_merge:
+            model: "LoraModel" = PeftModel.from_pretrained(model, adapter, **init_kwargs)
+            model = model.merge_and_unload()
+
+        if len(adapter_to_merge) > 0:
+            logger.info_rank0(f"Merged {len(adapter_to_merge)} adapter(s).")
+
+        if adapter_to_resume is not None:  # resume lora training
+            model = PeftModel.from_pretrained(model, adapter_to_resume, is_trainable=is_trainable, **init_kwargs)
+
+        logger.info_rank0("Loaded adapter(s): {}".format(",".join(model_args.adapter_name_or_path)))
+
+    if is_trainable and adapter_to_resume is None:  # create new lora weights while training
+        if len(finetuning_args.lora_target) == 1 and finetuning_args.lora_target[0] == "all":
+            target_modules = find_all_linear_modules(model)
+        else:
+            target_modules = finetuning_args.lora_target
+
+        if model_args.resize_vocab and finetuning_args.additional_target is None:
+            input_embeddings = model.get_input_embeddings()
+            output_embeddings = model.get_output_embeddings()
+            module_names = set()
+            for name, module in model.named_modules():
+                if module in [input_embeddings, output_embeddings]:
+                    module_names.add(name.split(".")[-1])
+
+            finetuning_args.additional_target = module_names
+            logger.warning_rank0("Vocab has been resized, add {} to trainable params.".format(",".join(module_names)))
+
+        peft_kwargs = {
+            "r": finetuning_args.lora_rank,
+            "target_modules": target_modules,
+            "lora_alpha": finetuning_args.lora_alpha,
+            "lora_dropout": finetuning_args.lora_dropout,
+            "use_rslora": finetuning_args.use_rslora,
+            "modules_to_save": finetuning_args.additional_target,
+        }
+
+        lora_config = LoraConfig(
+            task_type=TaskType.CAUSAL_LM,
+            inference_mode=False,
+            **peft_kwargs,
+        )
+        model = get_peft_model(model, lora_config)
+
+    if is_trainable and cast_trainable_params_to_fp32:
+        for param in filter(lambda p: p.requires_grad, model.parameters()):
+            param.data = param.data.to(torch.float32)
+
+    return model
+
+def find_all_linear_modules(model: "PreTrainedModel") -> List[str]:
+    r"""
+    Finds all available modules to apply lora or galore.
+    """
+    forbidden_modules = {"lm_head"}
+
+    module_names = set()
+    for name, module in model.named_modules():
+        if any(forbidden_module in name for forbidden_module in forbidden_modules):
+            continue
+
+        if "Linear" in module.__class__.__name__ and "Embedding" not in module.__class__.__name__:
+            module_names.add(name.split(".")[-1])
+
+    logger.info_rank0("Found linear modules: {}".format(",".join(module_names)))
+    return list(module_names)
