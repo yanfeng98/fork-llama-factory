@@ -23,16 +23,16 @@ import numpy as np
 from datasets import DatasetDict, load_dataset, concatenate_datasets, interleave_datasets
 from transformers.utils.versions import require_version
 
-from ..extras import logging
-from ..extras.constants import FILEEXT2TYPE, DATA_CONFIG
-from ..extras.misc import use_modelscope, use_openmind
+from .extras import logging
+from .extras.constants import FILEEXT2TYPE, DATA_CONFIG
+from .extras.misc import use_modelscope, use_openmind
 
 
 if TYPE_CHECKING:
     from datasets import Dataset, IterableDataset
     from transformers import PreTrainedTokenizer, Seq2SeqTrainingArguments
 
-    from ..hparams import DataArguments, ModelArguments
+    from .hparams import DataArguments, ModelArguments
 
 logger = logging.get_logger(__name__)
 
