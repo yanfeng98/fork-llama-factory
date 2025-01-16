@@ -12,16 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
+from types import MethodType
 from typing import TYPE_CHECKING, Any, Dict, Optional, TypedDict
 
 import torch
+import transformers.dynamic_module_utils
+from transformers.utils.versions import require_version
+from transformers.dynamic_module_utils import get_relative_imports
+from transformers import PreTrainedTokenizerBase
 from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
 
 from ..extras import logging
-from ..extras.misc import count_parameters, skip_check_imports, try_download_model_from_other_hub
+from ..extras.misc import count_parameters, use_modelscope, use_openmind
 from .adapter import init_adapter
 from .model_utils.misc import register_autoclass
-from .patcher import patch_config, patch_model, patch_tokenizer
+from .patcher import patch_config, patch_model
 
 
 if TYPE_CHECKING:
@@ -36,22 +42,6 @@ logger = logging.get_logger(__name__)
 class TokenizerModule(TypedDict):
     tokenizer: "PreTrainedTokenizer"
     processor: Optional["ProcessorMixin"]
-
-
-def _get_init_kwargs(model_args: "ModelArguments") -> Dict[str, Any]:
-    r"""
-    Gets arguments to load config/tokenizer/model.
-
-    Note: including inplace operation of model_args.
-    """
-    skip_check_imports()
-    model_args.model_name_or_path = try_download_model_from_other_hub(model_args)
-    return {
-        "trust_remote_code": True,
-        "cache_dir": model_args.cache_dir,
-        "revision": model_args.model_revision,
-        "token": model_args.hf_hub_token,
-    }
 
 
 def load_tokenizer(model_args: "ModelArguments") -> "TokenizerModule":
@@ -80,6 +70,56 @@ def load_tokenizer(model_args: "ModelArguments") -> "TokenizerModule":
     patch_tokenizer(tokenizer)
 
     return {"tokenizer": tokenizer}
+
+def _get_init_kwargs(model_args: "ModelArguments") -> Dict[str, Any]:
+    r"""
+    Gets arguments to load config/tokenizer/model.
+
+    Note: including inplace operation of model_args.
+    """
+    skip_check_imports()
+    model_args.model_name_or_path = try_download_model_from_other_hub(model_args)
+    return {
+        "trust_remote_code": True,
+        "cache_dir": model_args.cache_dir,
+        "revision": model_args.model_revision,
+        "token": model_args.hf_hub_token,
+    }
+
+def skip_check_imports() -> None:
+    r"""
+    Avoids flash attention import error in custom model files.
+    """
+    transformers.dynamic_module_utils.check_imports = get_relative_imports
+
+def try_download_model_from_other_hub(model_args: "ModelArguments") -> str:
+    if (not use_modelscope() and not use_openmind()) or os.path.exists(model_args.model_name_or_path):
+        return model_args.model_name_or_path
+
+    if use_modelscope():
+        require_version("modelscope>=1.11.0", "To fix: pip install modelscope>=1.11.0")
+        from modelscope import snapshot_download  # type: ignore
+
+        revision = "master" if model_args.model_revision == "main" else model_args.model_revision
+        return snapshot_download(
+            model_args.model_name_or_path,
+            revision=revision,
+            cache_dir=model_args.cache_dir,
+        )
+
+    if use_openmind():
+        require_version("openmind>=0.8.0", "To fix: pip install openmind>=0.8.0")
+        from openmind.utils.hub import snapshot_download  # type: ignore
+
+        return snapshot_download(
+            model_args.model_name_or_path,
+            revision=model_args.model_revision,
+            cache_dir=model_args.cache_dir,
+        )
+    
+def patch_tokenizer(tokenizer: "PreTrainedTokenizer") -> None:
+    if "PreTrainedTokenizerBase" not in str(tokenizer._pad.__func__):
+        tokenizer._pad = MethodType(PreTrainedTokenizerBase._pad, tokenizer)
 
 
 def load_config(model_args: "ModelArguments") -> "PretrainedConfig":

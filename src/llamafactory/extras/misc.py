@@ -15,14 +15,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import gc
 import os
-from typing import TYPE_CHECKING, Tuple, Union
+from typing import TYPE_CHECKING, Tuple
 
 import torch
-import torch.distributed as dist
-import transformers.dynamic_module_utils
-from transformers.dynamic_module_utils import get_relative_imports
 from transformers.utils import (
     is_torch_bf16_gpu_available,
     is_torch_cuda_available,
@@ -40,12 +36,6 @@ try:
     _is_bf16_available = is_torch_bf16_gpu_available()
 except Exception:
     _is_bf16_available = False
-
-
-if TYPE_CHECKING:
-    from numpy.typing import NDArray
-
-    from ..hparams import ModelArguments
 
 
 logger = logging.get_logger(__name__)
@@ -143,39 +133,6 @@ def infer_optim_dtype(model_dtype: "torch.dtype") -> "torch.dtype":
         return torch.float16
     else:
         return torch.float32
-
-
-def skip_check_imports() -> None:
-    r"""
-    Avoids flash attention import error in custom model files.
-    """
-    transformers.dynamic_module_utils.check_imports = get_relative_imports
-
-
-def try_download_model_from_other_hub(model_args: "ModelArguments") -> str:
-    if (not use_modelscope() and not use_openmind()) or os.path.exists(model_args.model_name_or_path):
-        return model_args.model_name_or_path
-
-    if use_modelscope():
-        require_version("modelscope>=1.11.0", "To fix: pip install modelscope>=1.11.0")
-        from modelscope import snapshot_download  # type: ignore
-
-        revision = "master" if model_args.model_revision == "main" else model_args.model_revision
-        return snapshot_download(
-            model_args.model_name_or_path,
-            revision=revision,
-            cache_dir=model_args.cache_dir,
-        )
-
-    if use_openmind():
-        require_version("openmind>=0.8.0", "To fix: pip install openmind>=0.8.0")
-        from openmind.utils.hub import snapshot_download  # type: ignore
-
-        return snapshot_download(
-            model_args.model_name_or_path,
-            revision=model_args.model_revision,
-            cache_dir=model_args.cache_dir,
-        )
 
 
 def use_modelscope() -> bool:
