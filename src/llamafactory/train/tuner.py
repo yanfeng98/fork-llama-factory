@@ -42,13 +42,10 @@ def run_exp(args: Optional[Dict[str, Any]] = None, callbacks: List["TrainerCallb
 
 
 def export_model(args: Optional[Dict[str, Any]] = None) -> None:
-    model_args, data_args, finetuning_args = get_infer_args(args)
+    model_args, finetuning_args = get_infer_args(args)
 
     if model_args.export_dir is None:
         raise ValueError("Please specify `export_dir` to save model.")
-
-    if model_args.adapter_name_or_path is not None and model_args.export_quantization_bit is not None:
-        raise ValueError("Please merge adapters before quantizing the model.")
 
     tokenizer_module = load_tokenizer(model_args)
     tokenizer = tokenizer_module["tokenizer"]

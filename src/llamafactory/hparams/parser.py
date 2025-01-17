@@ -225,10 +225,6 @@ def get_infer_args(args: Optional[Dict[str, Any]] = None) -> _INFER_CLS:
     model_args, data_args, finetuning_args = _parse_infer_args(args)
 
     _set_transformers_logging()
-
-    if data_args.template is None:
-        raise ValueError("Please specify which `template` to use.")
-
     _verify_model_args(model_args, finetuning_args)
     _check_extra_dependencies(finetuning_args)
 
@@ -238,4 +234,4 @@ def get_infer_args(args: Optional[Dict[str, Any]] = None) -> _INFER_CLS:
     else:
         model_args.device_map = "auto"
 
-    return model_args, data_args, finetuning_args
+    return model_args, finetuning_args

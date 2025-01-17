@@ -70,22 +70,6 @@ class ExportArguments:
         default="cpu",
         metadata={"help": "The device used in model export, use `auto` to accelerate exporting."},
     )
-    export_quantization_bit: Optional[int] = field(
-        default=None,
-        metadata={"help": "The number of bits to quantize the exported model."},
-    )
-    export_quantization_dataset: Optional[str] = field(
-        default=None,
-        metadata={"help": "Path to the dataset or dataset name to use in quantizing the exported model."},
-    )
-    export_quantization_nsamples: int = field(
-        default=128,
-        metadata={"help": "The number of samples used for quantization."},
-    )
-    export_quantization_maxlen: int = field(
-        default=1024,
-        metadata={"help": "The maximum length of the model inputs used for quantization."},
-    )
     export_legacy_format: bool = field(
         default=False,
         metadata={"help": "Whether or not to save the `.bin` files instead of `.safetensors`."},
@@ -221,9 +205,6 @@ class ModelArguments(QuantizationArguments, ExportArguments):
 
         if self.adapter_name_or_path is not None:  # support merging multiple lora weights
             self.adapter_name_or_path = [path.strip() for path in self.adapter_name_or_path.split(",")]
-
-        if self.export_quantization_bit is not None and self.export_quantization_dataset is None:
-            raise ValueError("Quantization dataset is necessary for exporting.")
 
     @classmethod
     def copyfrom(cls, source: "Self", **kwargs) -> "Self":

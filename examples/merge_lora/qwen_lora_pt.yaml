@@ -3,7 +3,6 @@
 ### model
 model_name_or_path: Qwen/Qwen2.5-Coder-0.5B-Instruct
 adapter_name_or_path: saves/qwen/lora/pt
-template: qwen
 finetuning_type: lora
 
 ### export

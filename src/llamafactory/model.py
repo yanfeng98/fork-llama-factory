@@ -159,7 +159,7 @@ def load_model(
     """
     init_kwargs = _get_init_kwargs(model_args)
     config = load_config(model_args)
-    patch_config(config, tokenizer, model_args, init_kwargs, is_trainable)
+    patch_config(config, model_args, init_kwargs, is_trainable)
 
     model = None
     lazy_load = False
@@ -220,7 +220,6 @@ def load_config(model_args: "ModelArguments") -> "PretrainedConfig":
 
 def patch_config(
     config: "PretrainedConfig",
-    tokenizer: "PreTrainedTokenizer",
     model_args: "ModelArguments",
     init_kwargs: Dict[str, Any],
     is_trainable: bool,
@@ -233,7 +232,7 @@ def patch_config(
 
     configure_attn_implementation(config, model_args)
     configure_rope(config, model_args, is_trainable)
-    configure_quantization(tokenizer, model_args, init_kwargs)
+    configure_quantization(model_args, init_kwargs)
 
     if model_args.use_cache and not is_trainable:
         setattr(config, "use_cache", True)
@@ -328,28 +327,11 @@ def configure_rope(config: "PretrainedConfig", model_args: "ModelArguments", is_
     )
 
 def configure_quantization(
-    tokenizer: "PreTrainedTokenizer",
     model_args: "ModelArguments",
     init_kwargs: Dict[str, Any],
 ) -> None:
 
-    if model_args.export_quantization_bit is not None:  # auto-gptq
-        if model_args.export_quantization_bit not in [8, 4, 3, 2]:
-            raise ValueError("AutoGPTQ only accepts 2/3/4/8-bit quantization.")
-
-        require_version("optimum>=1.17.0", "To fix: pip install optimum>=1.17.0")
-        require_version("auto_gptq>=0.5.0", "To fix: pip install auto_gptq>=0.5.0")
-        from accelerate.utils import get_max_memory
-
-        init_kwargs["quantization_config"] = GPTQConfig(
-            bits=model_args.export_quantization_bit,
-            dataset=_get_quantization_dataset(tokenizer, model_args),
-        )
-        init_kwargs["device_map"] = "auto"
-        init_kwargs["max_memory"] = get_max_memory()
-        logger.info_rank0(f"Quantizing model to {model_args.export_quantization_bit} bit with AutoGPTQ.")
-
-    elif model_args.quantization_bit is not None:  # on-the-fly
+    if model_args.quantization_bit is not None:  # on-the-fly
         if model_args.quantization_method == QuantizationMethod.BITS_AND_BYTES.value:
             if model_args.quantization_bit == 8:
                 require_version("bitsandbytes>=0.37.0", "To fix: pip install bitsandbytes>=0.37.0")
@@ -400,46 +382,6 @@ def configure_quantization(
             require_version("eetq", "To fix: pip install eetq")
             init_kwargs["quantization_config"] = EetqConfig()
             logger.info_rank0(f"Quantizing model to {model_args.quantization_bit} bit with EETQ.")
-
-def _get_quantization_dataset(tokenizer: "PreTrainedTokenizer", model_args: "ModelArguments") -> List[Dict[str, Any]]:
-    r"""
-    Prepares the tokenized dataset to perform AutoGPTQ. Do not use tensor output for JSON serialization.
-    """
-    if os.path.isfile(model_args.export_quantization_dataset):
-        data_path = FILEEXT2TYPE.get(model_args.export_quantization_dataset.split(".")[-1], None)
-        data_files = model_args.export_quantization_dataset
-    else:
-        data_path = model_args.export_quantization_dataset
-        data_files = None
-
-    dataset = load_dataset(
-        path=data_path,
-        data_files=data_files,
-        split="train",
-        cache_dir=model_args.cache_dir,
-        token=model_args.hf_hub_token,
-    )
-
-    samples = []
-    maxlen = model_args.export_quantization_maxlen
-    for _ in range(model_args.export_quantization_nsamples):
-        n_try = 0
-        while True:
-            if n_try > 100:
-                raise ValueError("Cannot find satisfying example, considering decrease `export_quantization_maxlen`.")
-
-            sample_idx = random.randint(0, len(dataset) - 1)
-            sample: Dict[str, "torch.Tensor"] = tokenizer(dataset[sample_idx]["text"], return_tensors="pt")
-            n_try += 1
-            if sample["input_ids"].size(1) > maxlen:
-                break  # TODO: fix large maxlen
-
-        word_idx = random.randint(0, sample["input_ids"].size(1) - maxlen - 1)
-        input_ids = sample["input_ids"][:, word_idx : word_idx + maxlen]
-        attention_mask = sample["attention_mask"][:, word_idx : word_idx + maxlen]
-        samples.append({"input_ids": input_ids.tolist(), "attention_mask": attention_mask.tolist()})
-
-    return samples
 
 def patch_model(
     model: "PreTrainedModel",
