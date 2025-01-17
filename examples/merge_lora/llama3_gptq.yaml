@@ -1,8 +1,0 @@
-### model
-model_name_or_path: meta-llama/Meta-Llama-3-8B-Instruct
-
-### export
-export_dir: models/llama3_gptq
-export_size: 2
-export_device: cpu
-export_legacy_format: false

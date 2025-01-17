@@ -87,12 +87,6 @@ FORCE_TORCHRUN=1 NNODES=2 RANK=1 MASTER_ADDR=192.168.0.1 MASTER_PORT=29500 llama
 llamafactory-cli export examples/merge_lora/qwen_lora_pt.yaml
 ```
 
-#### 使用 AutoGPTQ 量化模型
-
-```bash
-llamafactory-cli export examples/merge_lora/llama3_gptq.yaml
-```
-
 ### 杂项
 
 #### FSDP+QLoRA 微调
