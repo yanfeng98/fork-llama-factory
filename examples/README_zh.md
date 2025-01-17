@@ -44,24 +44,6 @@ FORCE_TORCHRUN=1 llamafactory-cli train examples/train_lora/qwen_lora_pt_ds3.yam
 llamafactory-cli train examples/train_qlora/qwen_lora_pt_otfq.yaml
 ```
 
-#### 基于 4/8 比特 GPTQ 量化进行指令监督微调
-
-```bash
-llamafactory-cli train examples/train_qlora/llama3_lora_sft_gptq.yaml
-```
-
-#### 基于 4 比特 AWQ 量化进行指令监督微调
-
-```bash
-llamafactory-cli train examples/train_qlora/llama3_lora_sft_awq.yaml
-```
-
-#### 基于 2 比特 AQLM 量化进行指令监督微调
-
-```bash
-llamafactory-cli train examples/train_qlora/llama3_lora_sft_aqlm.yaml
-```
-
 ### 全参数微调
 
 #### 在单机上进行指令监督微调

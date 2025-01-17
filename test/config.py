@@ -5,6 +5,7 @@ from transformers import PretrainedConfig, PreTrainedTokenizer, PreTrainedModel
 
 def register_autoclass(config: "PretrainedConfig", model: "PreTrainedModel", tokenizer: "PreTrainedTokenizer"):
     print(getattr(config, "auto_map", {}))
+    print(tokenizer.init_kwargs.get("auto_map", {}))
     if "AutoConfig" in getattr(config, "auto_map", {}):
         print("config registered")
         config.__class__.register_for_auto_class()
@@ -15,7 +16,7 @@ def register_autoclass(config: "PretrainedConfig", model: "PreTrainedModel", tok
         print("tokenizer registered")
         tokenizer.__class__.register_for_auto_class()
 
-model_name = "Qwen/Qwen2.5-Coder-32B-Instruct"
+model_name = "Qwen/Qwen2.5-Coder-0.5B-Instruct"
 config = AutoConfig.from_pretrained(model_name)
 model = AutoModelForCausalLM.from_pretrained(model_name)
 tokenizer = AutoTokenizer.from_pretrained(model_name)
@@ -26,12 +27,16 @@ print(config._attn_implementation)
 print(config.rope_scaling)
 # 32768
 print(config.max_position_embeddings)
+# {}
+# {}
+register_autoclass(config=config, model=model, tokenizer=tokenizer)
 
-print(register_autoclass(config=config, model=model, tokenizer=model))
+
+
 
 from modelscope import snapshot_download
 
-model_dir: str = snapshot_download("LLM-Research/Meta-Llama-3.1-8B-Instruct")
+model_dir: str = snapshot_download("LLM-Research/Llama-3.2-1B-Instruct")
 config = AutoConfig.from_pretrained(model_dir)
 model = AutoModelForCausalLM.from_pretrained(model_dir)
 tokenizer = AutoTokenizer.from_pretrained(model_dir)
@@ -42,5 +47,6 @@ print(config._attn_implementation)
 print(config.rope_scaling)
 # 131072
 print(config.max_position_embeddings)
-
-print(register_autoclass(config=config, model=model, tokenizer=model))
+# {}
+# {}
+register_autoclass(config=config, model=model, tokenizer=tokenizer)

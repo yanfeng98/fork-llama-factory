@@ -171,9 +171,8 @@ def load_model(
         model = load_class.from_pretrained(**init_kwargs)
 
     patch_model(model, tokenizer, model_args, is_trainable)
-    register_autoclass(config, model, tokenizer)
 
-    model = init_adapter(config, model, model_args, finetuning_args, is_trainable)
+    model = init_adapter(model, model_args, finetuning_args, is_trainable)
 
     if not is_trainable:
         model.requires_grad_(False)
@@ -541,17 +540,7 @@ def print_attn_implementation(config: "PretrainedConfig") -> None:
     else:
         logger.info_rank0("Using vanilla attention implementation.")
 
-
-def register_autoclass(config: "PretrainedConfig", model: "PreTrainedModel", tokenizer: "PreTrainedTokenizer"):
-    if "AutoConfig" in getattr(config, "auto_map", {}):
-        config.__class__.register_for_auto_class()
-    if "AutoModelForCausalLM" in getattr(config, "auto_map", {}):
-        model.__class__.register_for_auto_class()
-    if "AutoTokenizer" in tokenizer.init_kwargs.get("auto_map", {}):
-        tokenizer.__class__.register_for_auto_class()
-
 def init_adapter(
-    config: "PretrainedConfig",
     model: "PreTrainedModel",
     model_args: "ModelArguments",
     finetuning_args: "FinetuningArguments",
@@ -569,8 +558,8 @@ def init_adapter(
             raise ValueError("Quantized models can only be used for the LoRA tuning.")
 
     # cast trainable parameters to float32 if:
-    # 1. is_trainable and not pure_bf16 and not badam and quantization_bit is not None (qlora)
-    # 2. is_trainable and not pure_bf16 and not badam and not zero3 and not fsdp (zero3 or fsdp already in fp32)
+    # 1. is_trainable and not pure_bf16 and quantization_bit is not None (qlora)
+    # 2. is_trainable and not pure_bf16 and not zero3 and not fsdp (zero3 or fsdp already in fp32)
     cast_trainable_params_to_fp32 = False
     if not is_trainable:
         pass
@@ -602,13 +591,9 @@ def _setup_full_tuning(
         return
 
     logger.info_rank0("Fine-tuning method: Full")
-    forbidden_modules = set()
     for name, param in model.named_parameters():
-        if not any(forbidden_module in name for forbidden_module in forbidden_modules):
-            if cast_trainable_params_to_fp32:
-                param.data = param.data.to(torch.float32)
-        else:
-            param.requires_grad_(False)
+        if cast_trainable_params_to_fp32:
+            param.data = param.data.to(torch.float32)
 
 
 def _setup_lora_tuning(
