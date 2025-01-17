@@ -28,7 +28,7 @@ from transformers.utils import (
     is_torch_cuda_available,
 )
 from datasets import load_dataset
-from transformers import BitsAndBytesConfig, EetqConfig, GPTQConfig, HqqConfig
+from transformers import BitsAndBytesConfig, EetqConfig, HqqConfig
 import transformers.dynamic_module_utils
 from transformers import PreTrainedModel
 from transformers.integrations import is_deepspeed_zero3_enabled
@@ -72,7 +72,6 @@ class QuantizationMethod(str, Enum):
     """
 
     BITS_AND_BYTES = "bitsandbytes"
-    QUANTO = "quanto"
     EETQ = "eetq"
     HQQ = "hqq"
 
@@ -161,23 +160,18 @@ def load_model(
     config = load_config(model_args)
     patch_config(config, model_args, init_kwargs, is_trainable)
 
-    model = None
-    lazy_load = False
+    init_kwargs["config"] = config
+    init_kwargs["pretrained_model_name_or_path"] = model_args.model_name_or_path
 
-    if model is None and not lazy_load:
-        init_kwargs["config"] = config
-        init_kwargs["pretrained_model_name_or_path"] = model_args.model_name_or_path
+    load_class = AutoModelForCausalLM
 
-        load_class = AutoModelForCausalLM
+    if model_args.train_from_scratch:
+        model = load_class.from_config(config, trust_remote_code=True)
+    else:
+        model = load_class.from_pretrained(**init_kwargs)
 
-        if model_args.train_from_scratch:
-            model = load_class.from_config(config, trust_remote_code=True)
-        else:
-            model = load_class.from_pretrained(**init_kwargs)
-
-    if not lazy_load:
-        patch_model(model, tokenizer, model_args, is_trainable)
-        register_autoclass(config, model, tokenizer)
+    patch_model(model, tokenizer, model_args, is_trainable)
+    register_autoclass(config, model, tokenizer)
 
     model = init_adapter(config, model, model_args, finetuning_args, is_trainable)
 
