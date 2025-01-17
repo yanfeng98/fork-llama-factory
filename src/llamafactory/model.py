@@ -1,10 +1,10 @@
-# Copyright 2024 the LlamaFactory team.
+# Copyright 2024 luyanfeng
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
+# Licensed under the MIT License, (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+#     http://opensource.org/licenses/MIT
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -36,7 +36,6 @@ from transformers.modeling_utils import is_fsdp_enabled
 from transformers.utils.versions import require_version
 from transformers.utils import is_flash_attn_2_available, is_torch_sdpa_available
 from transformers.dynamic_module_utils import get_relative_imports
-from transformers import PreTrainedTokenizerBase
 from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
 
 from peft import LoraConfig, LoraModel, PeftModel, TaskType, get_peft_model
@@ -101,8 +100,6 @@ def load_tokenizer(model_args: "ModelArguments") -> "TokenizerModule":
             **init_kwargs,
         )
 
-    patch_tokenizer(tokenizer)
-
     return {"tokenizer": tokenizer}
 
 def _get_init_kwargs(model_args: "ModelArguments") -> Dict[str, Any]:
@@ -150,10 +147,6 @@ def try_download_model_from_other_hub(model_args: "ModelArguments") -> str:
             revision=model_args.model_revision,
             cache_dir=model_args.cache_dir,
         )
-    
-def patch_tokenizer(tokenizer: "PreTrainedTokenizer") -> None:
-    if "PreTrainedTokenizerBase" not in str(tokenizer._pad.__func__):
-        tokenizer._pad = MethodType(PreTrainedTokenizerBase._pad, tokenizer)
 
 def load_model(
     tokenizer: "PreTrainedTokenizer",
@@ -238,7 +231,7 @@ def patch_config(
         else:
             model_args.compute_dtype = infer_optim_dtype(model_dtype=getattr(config, "torch_dtype", None))
 
-    configure_attn_implementation(config, model_args, is_trainable)
+    configure_attn_implementation(config, model_args)
     configure_rope(config, model_args, is_trainable)
     configure_quantization(tokenizer, model_args, init_kwargs)
 
@@ -277,7 +270,7 @@ def infer_optim_dtype(model_dtype: "torch.dtype") -> "torch.dtype":
         return torch.float32
 
 def configure_attn_implementation(
-    config: "PretrainedConfig", model_args: "ModelArguments", is_trainable: bool
+    config: "PretrainedConfig", model_args: "ModelArguments"
 ) -> None:
 
     if model_args.flash_attn == "auto":
