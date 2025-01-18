@@ -200,19 +200,3 @@ class ModelArguments(QuantizationArguments, ExportArguments):
 
         if self.adapter_name_or_path is not None:  # support merging multiple lora weights
             self.adapter_name_or_path = [path.strip() for path in self.adapter_name_or_path.split(",")]
-
-    @classmethod
-    def copyfrom(cls, source: "Self", **kwargs) -> "Self":
-        init_args, lazy_args = {}, {}
-        for attr in fields(source):
-            if attr.init:
-                init_args[attr.name] = getattr(source, attr.name)
-            else:
-                lazy_args[attr.name] = getattr(source, attr.name)
-
-        init_args.update(kwargs)
-        result = cls(**init_args)
-        for name, value in lazy_args.items():
-            setattr(result, name, value)
-
-        return result
