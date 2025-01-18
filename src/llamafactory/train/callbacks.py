@@ -1,10 +1,10 @@
-# Copyright 2024 the LlamaFactory team.
+# Copyright 2024 luyanfeng
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
+# Licensed under the MIT License, (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+#     http://opensource.org/licenses/MIT
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -20,7 +20,6 @@ from datetime import timedelta
 from typing import TYPE_CHECKING, Any, Dict, Optional
 
 from transformers import TrainerCallback
-from transformers.trainer_utils import has_length
 from typing_extensions import override
 
 from ..extras import logging
@@ -88,9 +87,6 @@ class LogCallback(TrainerCallback):
             total_steps=self.max_steps,
             loss=state.log_history[-1].get("loss"),
             eval_loss=state.log_history[-1].get("eval_loss"),
-            predict_loss=state.log_history[-1].get("predict_loss"),
-            reward=state.log_history[-1].get("reward"),
-            accuracy=state.log_history[-1].get("rewards/accuracies"),
             lr=state.log_history[-1].get("learning_rate"),
             epoch=state.log_history[-1].get("epoch"),
             percentage=round(self.cur_steps / self.max_steps * 100, 2) if self.max_steps != 0 else 100,
@@ -132,40 +128,3 @@ class LogCallback(TrainerCallback):
         if self.thread_pool is not None:
             self.thread_pool.shutdown(wait=True)
             self.thread_pool = None
-
-    @override
-    def on_evaluate(self, args: "TrainingArguments", state: "TrainerState", control: "TrainerControl", **kwargs):
-        if not self.do_train:
-            self._close_thread_pool()
-
-    @override
-    def on_predict(self, args: "TrainingArguments", state: "TrainerState", control: "TrainerControl", **kwargs):
-        if not self.do_train:
-            self._close_thread_pool()
-
-    @override
-    def on_prediction_step(
-        self, args: "TrainingArguments", state: "TrainerState", control: "TrainerControl", **kwargs
-    ):
-        if self.do_train:
-            return
-
-        if not args.should_save:
-            return
-
-        eval_dataloader = kwargs.pop("eval_dataloader", None)
-        if has_length(eval_dataloader):
-            if self.max_steps == 0:
-                self._reset(max_steps=len(eval_dataloader))
-                self._create_thread_pool(output_dir=args.output_dir)
-
-            self._timing(cur_steps=self.cur_steps + 1)
-            if self.cur_steps % 5 == 0 and self.thread_pool is not None:
-                logs = dict(
-                    current_steps=self.cur_steps,
-                    total_steps=self.max_steps,
-                    percentage=round(self.cur_steps / self.max_steps * 100, 2) if self.max_steps != 0 else 100,
-                    elapsed_time=self.elapsed_time,
-                    remaining_time=self.remaining_time,
-                )
-                self.thread_pool.submit(self._write_log, args.output_dir, logs)

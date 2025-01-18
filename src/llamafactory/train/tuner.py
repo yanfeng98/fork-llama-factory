@@ -34,6 +34,7 @@ logger = logging.get_logger(__name__)
 def run_exp(args: Optional[Dict[str, Any]] = None, callbacks: List["TrainerCallback"] = []) -> None:
     callbacks.append(LogCallback())
     model_args, data_args, training_args, finetuning_args = get_train_args(args)
+    logger.info(f"Training/evaluation parameters:\n{training_args}")
 
     if finetuning_args.stage == "pt":
         run_pt(model_args, data_args, training_args, finetuning_args, callbacks)
@@ -44,21 +45,12 @@ def run_exp(args: Optional[Dict[str, Any]] = None, callbacks: List["TrainerCallb
 def export_model(args: Optional[Dict[str, Any]] = None) -> None:
     model_args, finetuning_args = get_infer_args(args)
 
-    if model_args.export_dir is None:
-        raise ValueError("Please specify `export_dir` to save model.")
-
     tokenizer_module = load_tokenizer(model_args)
     tokenizer = tokenizer_module["tokenizer"]
     if tokenizer.pad_token_id is None:
         tokenizer.pad_token = tokenizer.eos_token
         logger.info_rank0(f"Add pad token: {tokenizer.pad_token}")
     model = load_model(tokenizer, model_args, finetuning_args)  # must after fixing tokenizer to resize vocab
-
-    if getattr(model, "quantization_method", None) is not None and model_args.adapter_name_or_path is not None:
-        raise ValueError("Cannot merge adapters to a quantized model.")
-
-    if not isinstance(model, PreTrainedModel):
-        raise ValueError("The model is not a `PreTrainedModel`, export aborted.")
 
     if getattr(model, "quantization_method", None) is not None:  # quantized model adopts float16 type
         setattr(model.config, "torch_dtype", torch.float16)
