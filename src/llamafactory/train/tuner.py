@@ -15,7 +15,6 @@
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 import torch
-from transformers import PreTrainedModel
 
 from ..extras import logging
 from ..hparams import get_infer_args, get_train_args

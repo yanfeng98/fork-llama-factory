@@ -19,51 +19,13 @@ import logging
 import os
 import sys
 import threading
-from concurrent.futures import ThreadPoolExecutor
 from functools import lru_cache
 from typing import Optional
-
-from .constants import RUNNING_LOG
 
 
 _thread_lock = threading.RLock()
 _default_handler: Optional["logging.Handler"] = None
 _default_log_level: "logging._Level" = logging.INFO
-
-
-class LoggerHandler(logging.Handler):
-    r"""
-    Redirects the logging output to the logging file for LLaMA Board.
-    """
-
-    def __init__(self, output_dir: str) -> None:
-        super().__init__()
-        self._formatter = logging.Formatter(
-            fmt="[%(levelname)s|%(asctime)s] %(filename)s:%(lineno)s >> %(message)s",
-            datefmt="%Y-%m-%d %H:%M:%S",
-        )
-        self.setLevel(logging.INFO)
-        os.makedirs(output_dir, exist_ok=True)
-        self.running_log = os.path.join(output_dir, RUNNING_LOG)
-        if os.path.exists(self.running_log):
-            os.remove(self.running_log)
-
-        self.thread_pool = ThreadPoolExecutor(max_workers=1)
-
-    def _write_log(self, log_entry: str) -> None:
-        with open(self.running_log, "a", encoding="utf-8") as f:
-            f.write(log_entry + "\n\n")
-
-    def emit(self, record) -> None:
-        if record.name == "httpx":
-            return
-
-        log_entry = self._formatter.format(record)
-        self.thread_pool.submit(self._write_log, log_entry)
-
-    def close(self) -> None:
-        self.thread_pool.shutdown(wait=True)
-        return super().close()
 
 
 class _Logger(logging.Logger):
@@ -81,27 +43,18 @@ class _Logger(logging.Logger):
         self.warning(*args, **kwargs)
 
 
-def _get_default_logging_level() -> "logging._Level":
+def get_logger(name: Optional[str] = None) -> "_Logger":
     r"""
-    Returns the default logging level.
+    Returns a logger with the specified name. It it not supposed to be accessed externally.
     """
-    env_level_str = os.environ.get("LLAMAFACTORY_VERBOSITY", None)
-    if env_level_str:
-        if env_level_str.upper() in logging._nameToLevel:
-            return logging._nameToLevel[env_level_str.upper()]
-        else:
-            raise ValueError(f"Unknown logging level: {env_level_str}.")
+    if name is None:
+        name = _get_library_name()
 
-    return _default_log_level
-
+    _configure_library_root_logger()
+    return logging.getLogger(name)
 
 def _get_library_name() -> str:
     return __name__.split(".")[0]
-
-
-def _get_library_root_logger() -> "_Logger":
-    return logging.getLogger(_get_library_name())
-
 
 def _configure_library_root_logger() -> None:
     r"""
@@ -124,32 +77,21 @@ def _configure_library_root_logger() -> None:
         library_root_logger.setLevel(_get_default_logging_level())
         library_root_logger.propagate = False
 
+def _get_library_root_logger() -> "_Logger":
+    return logging.getLogger(_get_library_name())
 
-def get_logger(name: Optional[str] = None) -> "_Logger":
+def _get_default_logging_level() -> "logging._Level":
     r"""
-    Returns a logger with the specified name. It it not supposed to be accessed externally.
+    Returns the default logging level.
     """
-    if name is None:
-        name = _get_library_name()
+    env_level_str = os.environ.get("LLAMAFACTORY_VERBOSITY", None)
+    if env_level_str:
+        if env_level_str.upper() in logging._nameToLevel:
+            return logging._nameToLevel[env_level_str.upper()]
+        else:
+            raise ValueError(f"Unknown logging level: {env_level_str}.")
 
-    _configure_library_root_logger()
-    return logging.getLogger(name)
-
-
-def add_handler(handler: "logging.Handler") -> None:
-    r"""
-    Adds a handler to the root logger.
-    """
-    _configure_library_root_logger()
-    _get_library_root_logger().addHandler(handler)
-
-
-def remove_handler(handler: logging.Handler) -> None:
-    r"""
-    Removes a handler to the root logger.
-    """
-    _configure_library_root_logger()
-    _get_library_root_logger().removeHandler(handler)
+    return _default_log_level
 
 
 def info_rank0(self: "logging.Logger", *args, **kwargs) -> None:
