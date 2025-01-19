@@ -12,9 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
 import math
-import random
 import inspect
 from enum import Enum, unique
 from types import MethodType
@@ -27,24 +25,20 @@ from transformers.utils import (
     is_torch_bf16_gpu_available,
     is_torch_cuda_available,
 )
-from datasets import load_dataset
 from transformers import BitsAndBytesConfig, EetqConfig, HqqConfig
-import transformers.dynamic_module_utils
 from transformers import PreTrainedModel
 from transformers.integrations import is_deepspeed_zero3_enabled
 from transformers.modeling_utils import is_fsdp_enabled
 from transformers.utils.versions import require_version
 from transformers.utils import is_flash_attn_2_available, is_torch_sdpa_available
-from transformers.dynamic_module_utils import get_relative_imports
 from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
 
 from peft import LoraConfig, LoraModel, PeftModel, TaskType, get_peft_model
 
 from .extras import logging
-from .extras.constants import FILEEXT2TYPE
 from .extras.constants import LAYERNORM_NAMES
 from .extras.misc import get_current_device
-from .extras.misc import count_parameters, use_modelscope, use_openmind
+from .extras.misc import count_parameters
 
 
 if TYPE_CHECKING:
@@ -185,13 +179,6 @@ def patch_config(
     configure_rope(config, model_args, is_trainable)
     configure_quantization(model_args, init_kwargs)
 
-    if model_args.use_cache and not is_trainable:
-        setattr(config, "use_cache", True)
-        logger.info_rank0("Using KV cache for faster generation.")
-
-    if getattr(config, "model_type", None) == "qwen2" and is_trainable and model_args.flash_attn == "fa2":
-        setattr(config, "use_cache", False)  # qwen2 does not support use_cache when using flash attn
-
     # deepspeed zero3 is not compatible with low_cpu_mem_usage
     init_kwargs["low_cpu_mem_usage"] = model_args.low_cpu_mem_usage and (not is_deepspeed_zero3_enabled())
 
@@ -225,21 +212,17 @@ def configure_attn_implementation(
 
     if model_args.flash_attn == "auto":
         return
-
     elif model_args.flash_attn == "disabled":
         requested_attn_implementation = "eager"
-
     elif model_args.flash_attn == "sdpa":
         if not is_torch_sdpa_available():
             logger.warning_rank0("torch>=2.1.1 is required for SDPA attention.")
             return
-
         requested_attn_implementation = "sdpa"
     elif model_args.flash_attn == "fa2":
         if not is_flash_attn_2_available():
             logger.warning_rank0("FlashAttention-2 is not installed.")
             return
-
         requested_attn_implementation = "flash_attention_2"
     else:
         raise NotImplementedError(f"Unknown attention type: {model_args.flash_attn}")
@@ -260,7 +243,6 @@ def configure_rope(config: "PretrainedConfig", model_args: "ModelArguments", is_
                 "Dynamic NTK scaling may not work well with fine-tuning. "
                 "See: https://github.com/huggingface/transformers/pull/24653"
             )
-
         current_max_length = getattr(config, "max_position_embeddings", None)
         if current_max_length and model_args.model_max_length > current_max_length:
             logger.info_rank0(f"Enlarge max model length from {current_max_length} to {model_args.model_max_length}.")
@@ -281,57 +263,56 @@ def configure_quantization(
     model_args: "ModelArguments",
     init_kwargs: Dict[str, Any],
 ) -> None:
+    
+    if model_args.quantization_bit is None:
+        return
 
-    if model_args.quantization_bit is not None:  # on-the-fly
-        if model_args.quantization_method == QuantizationMethod.BITS_AND_BYTES.value:
-            if model_args.quantization_bit == 8:
-                require_version("bitsandbytes>=0.37.0", "To fix: pip install bitsandbytes>=0.37.0")
-                init_kwargs["quantization_config"] = BitsAndBytesConfig(load_in_8bit=True)
-            elif model_args.quantization_bit == 4:
-                require_version("bitsandbytes>=0.39.0", "To fix: pip install bitsandbytes>=0.39.0")
-                init_kwargs["quantization_config"] = BitsAndBytesConfig(
-                    load_in_4bit=True,
-                    bnb_4bit_compute_dtype=model_args.compute_dtype,
-                    bnb_4bit_use_double_quant=model_args.double_quantization,
-                    bnb_4bit_quant_type=model_args.quantization_type,
-                    bnb_4bit_quant_storage=model_args.compute_dtype,  # crucial for fsdp+qlora
-                )
-            else:
-                raise ValueError("Bitsandbytes only accepts 4-bit or 8-bit quantization.")
+    if model_args.quantization_method == QuantizationMethod.BITS_AND_BYTES.value:
+        if model_args.quantization_bit == 8:
+            require_version("bitsandbytes>=0.37.0", "To fix: pip install bitsandbytes>=0.37.0")
+            init_kwargs["quantization_config"] = BitsAndBytesConfig(load_in_8bit=True)
+        elif model_args.quantization_bit == 4:
+            require_version("bitsandbytes>=0.39.0", "To fix: pip install bitsandbytes>=0.39.0")
+            init_kwargs["quantization_config"] = BitsAndBytesConfig(
+                load_in_4bit=True,
+                bnb_4bit_compute_dtype=model_args.compute_dtype,
+                bnb_4bit_use_double_quant=model_args.double_quantization,
+                bnb_4bit_quant_type=model_args.quantization_type,
+                bnb_4bit_quant_storage=model_args.compute_dtype,  # crucial for fsdp+qlora
+            )
+        else:
+            raise ValueError("Bitsandbytes only accepts 4-bit or 8-bit quantization.")
 
-            # Do not assign device map if:
-            # 1. deepspeed zero3 or fsdp (train)
-            if is_deepspeed_zero3_enabled() or is_fsdp_enabled():
-                if model_args.quantization_bit != 4:
-                    raise ValueError("Only 4-bit quantized model can use fsdp+qlora.")
+        # Do not assign device map if:
+        # 1. deepspeed zero3 or fsdp (train)
+        if is_deepspeed_zero3_enabled() or is_fsdp_enabled():
+            if model_args.quantization_bit != 4:
+                raise ValueError("Only 4-bit quantized model can use fsdp+qlora.")
+            require_version("bitsandbytes>=0.43.0", "To fix: pip install bitsandbytes>=0.43.0")
+        else:
+            init_kwargs["device_map"] = {"": get_current_device()}  # change auto device map for inference
 
-                require_version("bitsandbytes>=0.43.0", "To fix: pip install bitsandbytes>=0.43.0")
-            else:
-                init_kwargs["device_map"] = {"": get_current_device()}  # change auto device map for inference
+        logger.info_rank0(f"Quantizing model to {model_args.quantization_bit} bit with bitsandbytes.")
+    elif model_args.quantization_method == QuantizationMethod.HQQ.value:
+        if model_args.quantization_bit not in [8, 6, 5, 4, 3, 2, 1]:
+            raise ValueError("HQQ only accepts 1/2/3/4/5/6/8-bit quantization.")
+        if is_deepspeed_zero3_enabled() or is_fsdp_enabled():
+            raise ValueError("HQQ quantization is incompatible with DeepSpeed ZeRO-3 or FSDP.")
+        require_version("hqq", "To fix: pip install hqq")
+        init_kwargs["quantization_config"] = HqqConfig(
+            nbits=model_args.quantization_bit, quant_zero=False, quant_scale=False, axis=0
+        )  # use ATEN kernel (axis=0) for performance
 
-            logger.info_rank0(f"Quantizing model to {model_args.quantization_bit} bit with bitsandbytes.")
-        elif model_args.quantization_method == QuantizationMethod.HQQ.value:
-            if model_args.quantization_bit not in [8, 6, 5, 4, 3, 2, 1]:
-                raise ValueError("HQQ only accepts 1/2/3/4/5/6/8-bit quantization.")
+        logger.info_rank0(f"Quantizing model to {model_args.quantization_bit} bit with HQQ.")
+    elif model_args.quantization_method == QuantizationMethod.EETQ.value:
+        if model_args.quantization_bit != 8:
+            raise ValueError("EETQ only accepts 8-bit quantization.")
+        if is_deepspeed_zero3_enabled() or is_fsdp_enabled():
+            raise ValueError("EETQ quantization is incompatible with DeepSpeed ZeRO-3 or FSDP.")
+        require_version("eetq", "To fix: pip install eetq")
+        init_kwargs["quantization_config"] = EetqConfig()
 
-            if is_deepspeed_zero3_enabled() or is_fsdp_enabled():
-                raise ValueError("HQQ quantization is incompatible with DeepSpeed ZeRO-3 or FSDP.")
-
-            require_version("hqq", "To fix: pip install hqq")
-            init_kwargs["quantization_config"] = HqqConfig(
-                nbits=model_args.quantization_bit, quant_zero=False, quant_scale=False, axis=0
-            )  # use ATEN kernel (axis=0) for performance
-            logger.info_rank0(f"Quantizing model to {model_args.quantization_bit} bit with HQQ.")
-        elif model_args.quantization_method == QuantizationMethod.EETQ.value:
-            if model_args.quantization_bit != 8:
-                raise ValueError("EETQ only accepts 8-bit quantization.")
-
-            if is_deepspeed_zero3_enabled() or is_fsdp_enabled():
-                raise ValueError("EETQ quantization is incompatible with DeepSpeed ZeRO-3 or FSDP.")
-
-            require_version("eetq", "To fix: pip install eetq")
-            init_kwargs["quantization_config"] = EetqConfig()
-            logger.info_rank0(f"Quantizing model to {model_args.quantization_bit} bit with EETQ.")
+        logger.info_rank0(f"Quantizing model to {model_args.quantization_bit} bit with EETQ.")
 
 def patch_model(
     model: "PreTrainedModel",
@@ -339,16 +320,6 @@ def patch_model(
     model_args: "ModelArguments",
     is_trainable: bool,
 ) -> None:
-    gen_config = model.generation_config  # check and fix generation config
-    if not gen_config.do_sample and (
-        (gen_config.temperature is not None and gen_config.temperature != 1.0)
-        or (gen_config.top_p is not None and gen_config.top_p != 1.0)
-        or (gen_config.typical_p is not None and gen_config.typical_p != 1.0)
-    ):
-        gen_config.do_sample = True
-
-    if "GenerationMixin" not in str(model.generate.__func__):
-        model.generate = MethodType(PreTrainedModel.generate, model)
 
     if model_args.resize_vocab:
         resize_embedding_layer(model, tokenizer)
