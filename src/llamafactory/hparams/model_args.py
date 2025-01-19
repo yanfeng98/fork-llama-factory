@@ -107,10 +107,6 @@ class ModelArguments(QuantizationArguments, ExportArguments):
         default=False,
         metadata={"help": "Whether or not to resize the tokenizer vocab and the embedding layers."},
     )
-    split_special_tokens: bool = field(
-        default=False,
-        metadata={"help": "Whether or not the special tokens should be split during the tokenization process."},
-    )
     model_revision: str = field(
         default="main",
         metadata={"help": "The specific model version to use (can be a branch name, tag name or commit id)."},
@@ -188,11 +184,6 @@ class ModelArguments(QuantizationArguments, ExportArguments):
     )
 
     def __post_init__(self):
-        if self.model_name_or_path is None:
-            raise ValueError("Please provide `model_name_or_path`.")
-
-        if self.split_special_tokens and self.use_fast_tokenizer:
-            raise ValueError("`split_special_tokens` is only supported for slow tokenizers.")
 
         if self.adapter_name_or_path is not None:  # support merging multiple lora weights
             self.adapter_name_or_path = [path.strip() for path in self.adapter_name_or_path.split(",")]

@@ -83,22 +83,12 @@ def load_tokenizer(model_args: "ModelArguments") -> "TokenizerModule":
     Note: including inplace operation of model_args.
     """
     init_kwargs = _get_init_kwargs(model_args)
-    try:
-        tokenizer = AutoTokenizer.from_pretrained(
-            model_args.model_name_or_path,
-            use_fast=model_args.use_fast_tokenizer,
-            split_special_tokens=model_args.split_special_tokens,
-            padding_side="right",
-            **init_kwargs,
-        )
-    except ValueError:  # try the fast one
-        tokenizer = AutoTokenizer.from_pretrained(
-            model_args.model_name_or_path,
-            use_fast=True,
-            padding_side="right",
-            **init_kwargs,
-        )
-
+    tokenizer = AutoTokenizer.from_pretrained(
+        model_args.model_name_or_path,
+        use_fast=model_args.use_fast_tokenizer,
+        padding_side="right",
+        **init_kwargs,
+    )
     return {"tokenizer": tokenizer}
 
 def _get_init_kwargs(model_args: "ModelArguments") -> Dict[str, Any]:
@@ -107,45 +97,13 @@ def _get_init_kwargs(model_args: "ModelArguments") -> Dict[str, Any]:
 
     Note: including inplace operation of model_args.
     """
-    skip_check_imports()
-    model_args.model_name_or_path = try_download_model_from_other_hub(model_args)
+
     return {
         "trust_remote_code": True,
         "cache_dir": model_args.cache_dir,
         "revision": model_args.model_revision,
         "token": model_args.hf_hub_token,
     }
-
-def skip_check_imports() -> None:
-    r"""
-    Avoids flash attention import error in custom model files.
-    """
-    transformers.dynamic_module_utils.check_imports = get_relative_imports
-
-def try_download_model_from_other_hub(model_args: "ModelArguments") -> str:
-    if (not use_modelscope() and not use_openmind()) or os.path.exists(model_args.model_name_or_path):
-        return model_args.model_name_or_path
-
-    if use_modelscope():
-        require_version("modelscope>=1.11.0", "To fix: pip install modelscope>=1.11.0")
-        from modelscope import snapshot_download  # type: ignore
-
-        revision = "master" if model_args.model_revision == "main" else model_args.model_revision
-        return snapshot_download(
-            model_args.model_name_or_path,
-            revision=revision,
-            cache_dir=model_args.cache_dir,
-        )
-
-    if use_openmind():
-        require_version("openmind>=0.8.0", "To fix: pip install openmind>=0.8.0")
-        from openmind.utils.hub import snapshot_download  # type: ignore
-
-        return snapshot_download(
-            model_args.model_name_or_path,
-            revision=model_args.model_revision,
-            cache_dir=model_args.cache_dir,
-        )
 
 def load_model(
     tokenizer: "PreTrainedTokenizer",
