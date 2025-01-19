@@ -45,7 +45,7 @@ def run_pt(
     if tokenizer.pad_token_id is None:
         tokenizer.pad_token = tokenizer.eos_token
         logger.info_rank0(f"Add pad token: {tokenizer.pad_token}")
-    dataset_module = get_dataset(model_args, data_args, training_args, **tokenizer_module)
+    dataset_module = get_dataset(model_args, data_args, training_args, tokenizer)
     model = load_model(tokenizer, model_args, finetuning_args, training_args.do_train)
     data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=False)
 

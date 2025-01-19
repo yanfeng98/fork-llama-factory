@@ -97,7 +97,7 @@ class ModelArguments(QuantizationArguments, ExportArguments):
     )
     cache_dir: Optional[str] = field(
         default=None,
-        metadata={"help": "Where to store the pre-trained models downloaded from huggingface.co or modelscope.cn."},
+        metadata={"help": "Where to store the pre-trained models downloaded from huggingface.co."},
     )
     use_fast_tokenizer: bool = field(
         default=True,

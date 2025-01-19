@@ -26,28 +26,24 @@
   },
   "wikipedia_en": {
     "hf_hub_url": "olm/olm-wikipedia-20221220",
-    "ms_hub_url": "AI-ModelScope/olm-wikipedia-20221220",
     "columns": {
       "prompt": "text"
     }
   },
   "wikipedia_zh": {
     "hf_hub_url": "pleisto/wikipedia-cn-20230720-filtered",
-    "ms_hub_url": "AI-ModelScope/wikipedia-cn-20230720-filtered",
     "columns": {
       "prompt": "completion"
     }
   },
   "pile": {
     "hf_hub_url": "monology/pile-uncopyrighted",
-    "ms_hub_url": "AI-ModelScope/pile",
     "columns": {
       "prompt": "text"
     }
   },
   "skypile": {
     "hf_hub_url": "Skywork/SkyPile-150B",
-    "ms_hub_url": "AI-ModelScope/SkyPile-150B",
     "columns": {
       "prompt": "text"
     }
@@ -66,14 +62,12 @@
   },
   "the_stack": {
     "hf_hub_url": "bigcode/the-stack",
-    "ms_hub_url": "AI-ModelScope/the-stack",
     "columns": {
       "prompt": "content"
     }
   },
   "starcoder_python": {
     "hf_hub_url": "bigcode/starcoderdata",
-    "ms_hub_url": "AI-ModelScope/starcoderdata",
     "columns": {
       "prompt": "content"
     },

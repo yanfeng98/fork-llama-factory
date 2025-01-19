@@ -21,11 +21,9 @@ from typing import TYPE_CHECKING, Callable, Tuple, Any, Dict, List, Literal, Opt
 
 import numpy as np
 from datasets import DatasetDict, load_dataset, concatenate_datasets, interleave_datasets
-from transformers.utils.versions import require_version
 
 from .extras import logging
 from .extras.constants import FILEEXT2TYPE, DATA_CONFIG
-from .extras.misc import use_modelscope, use_openmind
 
 
 if TYPE_CHECKING:
@@ -43,9 +41,8 @@ class DatasetAttr:
     """
 
     # basic configs
-    load_from: Literal["hf_hub", "ms_hub", "om_hub", "file"]
+    load_from: Literal["hf_hub", "file"]
     dataset_name: str
-    formatting: Literal["alpaca"] = "alpaca"
     # extra configs
     subset: Optional[str] = None
     split: str = "train"
@@ -141,11 +138,8 @@ def get_dataset_list(dataset_names: Optional[Sequence[str]], dataset_dir: str) -
 
     config_path = os.path.join(dataset_dir, DATA_CONFIG)
 
-    try:
-        with open(config_path) as f:
-            dataset_info = json.load(f)
-    except Exception as err:
-        raise ValueError(f"Cannot open {config_path} due to {str(err)}.")
+    with open(config_path) as f:
+        dataset_info = json.load(f)
 
     dataset_list: List["DatasetAttr"] = []
     for name in dataset_names:
@@ -154,20 +148,12 @@ def get_dataset_list(dataset_names: Optional[Sequence[str]], dataset_dir: str) -
             raise ValueError(f"Undefined dataset {name} in {DATA_CONFIG}.")
 
         has_hf_url = "hf_hub_url" in dataset_info[name]
-        has_ms_url = "ms_hub_url" in dataset_info[name]
-        has_om_url = "om_hub_url" in dataset_info[name]
 
-        if has_hf_url or has_ms_url or has_om_url:
-            if has_ms_url and (use_modelscope() or not has_hf_url):
-                dataset_attr = DatasetAttr("ms_hub", dataset_name=dataset_info[name]["ms_hub_url"])
-            elif has_om_url and (use_openmind() or not has_hf_url):
-                dataset_attr = DatasetAttr("om_hub", dataset_name=dataset_info[name]["om_hub_url"])
-            else:
-                dataset_attr = DatasetAttr("hf_hub", dataset_name=dataset_info[name]["hf_hub_url"])
+        if has_hf_url:
+            dataset_attr = DatasetAttr(load_from="hf_hub", dataset_name=dataset_info[name]["hf_hub_url"])
         else:
-            dataset_attr = DatasetAttr("file", dataset_name=dataset_info[name]["file_name"])
+            dataset_attr = DatasetAttr(load_from="file", dataset_name=dataset_info[name]["file_name"])
 
-        dataset_attr.set_attr("formatting", dataset_info[name], default="alpaca")
         dataset_attr.set_attr("subset", dataset_info[name])
         dataset_attr.set_attr("split", dataset_info[name], default="train")
         dataset_attr.set_attr("folder", dataset_info[name])
@@ -189,11 +175,10 @@ def _load_single_dataset(
     """
     logger.info_rank0(f"Loading dataset {dataset_attr}...")
     data_path, data_name, data_dir, data_files = None, None, None, None
-    if dataset_attr.load_from in ["hf_hub", "ms_hub", "om_hub"]:
+    if dataset_attr.load_from in ["hf_hub"]:
         data_path = dataset_attr.dataset_name
         data_name = dataset_attr.subset
         data_dir = dataset_attr.folder
-
     elif dataset_attr.load_from == "file":
         data_files = []
         local_path = os.path.join(data_args.dataset_dir, dataset_attr.dataset_name)
@@ -214,54 +199,18 @@ def _load_single_dataset(
     else:
         raise NotImplementedError(f"Unknown load type: {dataset_attr.load_from}.")
 
-    if dataset_attr.load_from == "ms_hub":
-        require_version("modelscope>=1.11.0", "To fix: pip install modelscope>=1.11.0")
-        from modelscope import MsDataset  # type: ignore
-        from modelscope.utils.config_ds import MS_DATASETS_CACHE  # type: ignore
-
-        cache_dir = model_args.cache_dir or MS_DATASETS_CACHE
-        dataset = MsDataset.load(
-            dataset_name=data_path,
-            subset_name=data_name,
-            data_dir=data_dir,
-            data_files=data_files,
-            split=dataset_attr.split,
-            cache_dir=cache_dir,
-            token=model_args.ms_hub_token,
-            use_streaming=data_args.streaming,
-        )
-        if isinstance(dataset, MsDataset):
-            dataset = dataset.to_hf_dataset()
-
-    elif dataset_attr.load_from == "om_hub":
-        require_version("openmind>=0.8.0", "To fix: pip install openmind>=0.8.0")
-        from openmind import OmDataset  # type: ignore
-        from openmind.utils.hub import OM_DATASETS_CACHE  # type: ignore
-
-        cache_dir = model_args.cache_dir or OM_DATASETS_CACHE
-        dataset = OmDataset.load_dataset(
-            path=data_path,
-            name=data_name,
-            data_dir=data_dir,
-            data_files=data_files,
-            split=dataset_attr.split,
-            cache_dir=cache_dir,
-            token=model_args.om_hub_token,
-            streaming=data_args.streaming,
-        )
-    else:
-        dataset = load_dataset(
-            path=data_path,
-            name=data_name,
-            data_dir=data_dir,
-            data_files=data_files,
-            split=dataset_attr.split,
-            cache_dir=model_args.cache_dir,
-            token=model_args.hf_hub_token,
-            streaming=data_args.streaming,
-            num_proc=data_args.preprocessing_num_workers,
-            trust_remote_code=True,
-        )
+    dataset = load_dataset(
+        path=data_path,
+        name=data_name,
+        data_dir=data_dir,
+        data_files=data_files,
+        split=dataset_attr.split,
+        cache_dir=model_args.cache_dir,
+        token=model_args.hf_hub_token,
+        streaming=data_args.streaming,
+        num_proc=data_args.preprocessing_num_workers,
+        trust_remote_code=True,
+    )
 
     if dataset_attr.num_samples is not None and not data_args.streaming:
         target_num = dataset_attr.num_samples
@@ -271,7 +220,6 @@ def _load_single_dataset(
             expand_indexes = np.random.choice(len(dataset), target_num)
             indexes = np.concatenate((indexes, expand_indexes), axis=0)
 
-        assert len(indexes) == dataset_attr.num_samples, "Sample num mismatched."
         dataset = dataset.select(indexes)
         logger.info_rank0(f"Sampled {dataset_attr.num_samples} examples from dataset {dataset_attr}.")
 
@@ -287,12 +235,8 @@ def align_dataset(
     data_args: "DataArguments",
     training_args: "Seq2SeqTrainingArguments",
 ) -> Union["Dataset", "IterableDataset"]:
-    r"""
-    Aligned dataset:
-        _prompt: [{"role": "user", "content": "..."}] * (2T - 1)
-    """
 
-    convert_func = partial(convert_alpaca, dataset_attr=dataset_attr)
+    convert_func = partial(convert_data, dataset_attr=dataset_attr)
 
     column_names = list(next(iter(dataset)).keys())
     kwargs = {}
@@ -310,7 +254,7 @@ def align_dataset(
         **kwargs,
     )
 
-def convert_alpaca(
+def convert_data(
     example: Dict[str, Any],
     dataset_attr: "DatasetAttr",
 ) -> Dict[str, Any]:
@@ -318,9 +262,7 @@ def convert_alpaca(
     Converts alpaca format dataset to the standard format.
     """
 
-    prompt = [{"role": "user", "content": example[dataset_attr.prompt]}]
-
-    return {"_prompt": prompt}
+    return {"content": example[dataset_attr.prompt]}
 
 def merge_dataset(
     all_datasets: List[Union["Dataset", "IterableDataset"]], data_args: "DataArguments", seed: int
@@ -333,12 +275,8 @@ def merge_dataset(
     elif data_args.mix_strategy == "concat":
         if data_args.streaming:
             logger.warning_once("The samples between different datasets will not be mixed in streaming mode.")
-
         return concatenate_datasets(all_datasets)
     elif data_args.mix_strategy.startswith("interleave"):
-        if not data_args.streaming:
-            logger.warning_once("We recommend using `mix_strategy=concat` in non-streaming mode.")
-
         return interleave_datasets(
             datasets=all_datasets,
             probabilities=data_args.interleave_probs,
@@ -382,11 +320,8 @@ def _get_preprocessed_dataset(
     )
 
     if training_args.should_log:
-        try:
-            print("eval example:" if is_eval else "training example:")
-            print_function(next(iter(dataset)))
-        except StopIteration:
-            raise RuntimeError("Cannot find sufficient samples, consider increasing dataset size.")
+        print("eval example:" if is_eval else "training example:")
+        print_function(next(iter(dataset)))
 
     return dataset
 
@@ -404,10 +339,9 @@ def preprocess_pretrain_dataset(
 ) -> Dict[str, List[Any]]:
     # build grouped texts with format `X1 X2 X3 ...` if packing is enabled
     eos_token = "<|end_of_text|>" if data_args.template == "llama3" else tokenizer.eos_token
-    text_examples = [messages[0]["content"] + eos_token for messages in examples["_prompt"]]
+    text_examples = [content + eos_token for content in examples["content"]]
 
     if not data_args.packing:
-
         result = tokenizer(text_examples, add_special_tokens=False, truncation=True, max_length=data_args.cutoff_len)
     else:
         tokenized_examples = tokenizer(text_examples, add_special_tokens=False)
