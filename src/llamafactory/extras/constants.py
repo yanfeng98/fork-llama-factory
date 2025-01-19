@@ -37,14 +37,6 @@ FILEEXT2TYPE = {
     "txt": "text",
 }
 
-IGNORE_INDEX = -100
-
 LAYERNORM_NAMES = {"norm", "ln"}
-
-METHODS = ["full", "freeze", "lora"]
-
-PEFT_METHODS = {"lora"}
-
-RUNNING_LOG = "running_log.txt"
 
 TRAINER_LOG = "trainer_log.jsonl"

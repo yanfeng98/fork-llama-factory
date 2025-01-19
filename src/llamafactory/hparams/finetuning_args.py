@@ -1,10 +1,10 @@
-# Copyright 2024 the LlamaFactory team.
+# Copyright 2024 luyanfeng
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
+# Licensed under the MIT License, (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+#     http://opensource.org/licenses/MIT
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -72,10 +72,6 @@ class FinetuningArguments(LoraArguments):
         default=False,
         metadata={"help": "Whether or not to train model in purely bf16 precision (without AMP)."},
     )
-    stage: Literal["pt"] = field(
-        default="sft",
-        metadata={"help": "Which stage will be performed in training."},
-    )
     finetuning_type: Literal["lora", "full"] = field(
         default="lora",
         metadata={"help": "Which fine-tuning method to use."},
@@ -94,10 +90,3 @@ class FinetuningArguments(LoraArguments):
         self.lora_alpha: int = self.lora_alpha or self.lora_rank * 2
         self.lora_target: List[str] = split_arg(self.lora_target)
         self.additional_target: Optional[List[str]] = split_arg(self.additional_target)
-
-        assert self.finetuning_type in ["lora", "full"], "Invalid fine-tuning method."
-
-        if self.finetuning_type != "lora":
-
-            if self.use_rslora:
-                raise ValueError("`use_rslora` is only valid for LoRA training.")

@@ -99,12 +99,7 @@ class DataArguments:
         self.dataset = split_arg(self.dataset)
         self.eval_dataset = split_arg(self.eval_dataset)
 
-        if self.eval_dataset is not None and self.val_size > 1e-6:
-            raise ValueError("Cannot specify `val_size` if `eval_dataset` is not None.")
-
         if self.interleave_probs is not None:
-            if self.mix_strategy == "concat":
-                raise ValueError("`interleave_probs` is only valid for interleaved mixing.")
 
             self.interleave_probs = list(map(float, split_arg(self.interleave_probs)))
             if self.dataset is not None and len(self.dataset) != len(self.interleave_probs):

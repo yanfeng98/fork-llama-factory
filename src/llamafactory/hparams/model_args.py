@@ -41,10 +41,6 @@ class QuantizationArguments:
         default=True,
         metadata={"help": "Whether or not to use double quantization in bitsandbytes int4 training."},
     )
-    quantization_device_map: Optional[Literal["auto"]] = field(
-        default=None,
-        metadata={"help": "Device map used to infer the 4-bit quantized model, needs bitsandbytes>=0.43.0."},
-    )
 
 
 @dataclass

@@ -34,11 +34,7 @@ def run_exp(args: Optional[Dict[str, Any]] = None, callbacks: List["TrainerCallb
     callbacks.append(LogCallback())
     model_args, data_args, training_args, finetuning_args = get_train_args(args)
     logger.info(f"Training/evaluation parameters:\n{training_args}")
-
-    if finetuning_args.stage == "pt":
-        run_pt(model_args, data_args, training_args, finetuning_args, callbacks)
-    else:
-        raise ValueError(f"Unknown task: {finetuning_args.stage}.")
+    run_pt(model_args, data_args, training_args, finetuning_args, callbacks)
 
 
 def export_model(args: Optional[Dict[str, Any]] = None) -> None:

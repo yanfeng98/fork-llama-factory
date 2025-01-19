@@ -69,7 +69,6 @@ def get_dataset(
     model_args: "ModelArguments",
     data_args: "DataArguments",
     training_args: "Seq2SeqTrainingArguments",
-    stage: Literal["pt"],
     tokenizer: "PreTrainedTokenizer",
 ) -> "DatasetModule":
     r"""
@@ -83,10 +82,10 @@ def get_dataset(
 
     with training_args.main_process_first(desc="pre-process dataset"):
         dataset = _get_preprocessed_dataset(
-            dataset, data_args, training_args, stage, tokenizer, is_eval=False
+            dataset, data_args, training_args, tokenizer, is_eval=False
         )
         eval_dataset = _get_preprocessed_dataset(
-            eval_dataset, data_args, training_args, stage, tokenizer, is_eval=True
+            eval_dataset, data_args, training_args, tokenizer, is_eval=True
         )
 
         if data_args.val_size > 1e-6:
@@ -353,7 +352,6 @@ def _get_preprocessed_dataset(
     dataset: Optional[Union["Dataset", "IterableDataset"]],
     data_args: "DataArguments",
     training_args: "Seq2SeqTrainingArguments",
-    stage: Literal["pt"],
     tokenizer: "PreTrainedTokenizer",
     is_eval: bool = False,
 ) -> Optional[Union["Dataset", "IterableDataset"]]:

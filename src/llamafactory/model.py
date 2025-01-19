@@ -343,10 +343,9 @@ def configure_quantization(
 
             # Do not assign device map if:
             # 1. deepspeed zero3 or fsdp (train)
-            # 2. auto quantization device map (inference)
-            if is_deepspeed_zero3_enabled() or is_fsdp_enabled() or model_args.quantization_device_map == "auto":
+            if is_deepspeed_zero3_enabled() or is_fsdp_enabled():
                 if model_args.quantization_bit != 4:
-                    raise ValueError("Only 4-bit quantized model can use fsdp+qlora or auto device map.")
+                    raise ValueError("Only 4-bit quantized model can use fsdp+qlora.")
 
                 require_version("bitsandbytes>=0.43.0", "To fix: pip install bitsandbytes>=0.43.0")
             else:

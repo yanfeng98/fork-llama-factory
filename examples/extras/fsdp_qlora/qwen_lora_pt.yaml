@@ -3,7 +3,6 @@ model_name_or_path: Qwen/Qwen2.5-Coder-0.5B-Instruct
 # quantization_bit: 4
 
 ### method
-stage: pt
 do_train: true
 finetuning_type: lora
 lora_target: all
