@@ -123,10 +123,6 @@ class ModelArguments(QuantizationArguments, ExportArguments):
         default="auto",
         metadata={"help": "Enable FlashAttention for faster training and inference."},
     )
-    disable_gradient_checkpointing: bool = field(
-        default=False,
-        metadata={"help": "Whether or not to disable gradient checkpointing."},
-    )
     upcast_layernorm: bool = field(
         default=False,
         metadata={"help": "Whether or not to upcast the layernorm weights in fp32."},
