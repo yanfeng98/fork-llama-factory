@@ -17,14 +17,6 @@
 
 import importlib.metadata
 import importlib.util
-from functools import lru_cache
-from typing import TYPE_CHECKING
-
-from packaging import version
-
-
-if TYPE_CHECKING:
-    from packaging.version import Version
 
 
 def _is_package_available(name: str) -> bool:
@@ -39,17 +31,5 @@ def _is_package_available(name: str) -> bool:
     """
     return importlib.util.find_spec(name) is not None
 
-
-def _get_package_version(name: str) -> "Version":
-    try:
-        return version.parse(importlib.metadata.version(name))
-    except Exception:
-        return version.parse("0.0.0")
-
 def is_matplotlib_available():
     return _is_package_available("matplotlib")
-
-
-@lru_cache
-def is_transformers_version_equal_to_4_46():
-    return version.parse("4.46.0") <= _get_package_version("transformers") <= version.parse("4.46.1")

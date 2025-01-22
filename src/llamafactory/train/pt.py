@@ -17,18 +17,17 @@ from typing import TYPE_CHECKING, List, Optional
 
 from transformers import DataCollatorForLanguageModeling
 
-from ...data import get_dataset
-from ...extras import logging
-from ...extras.ploting import plot_loss
-from ...model import load_model, load_tokenizer
-from ..trainer_utils import create_modelcard_and_push
-from .trainer import CustomTrainer
+from ..data import get_dataset
+from ..extras import logging
+from ..extras.ploting import plot_loss
+from ..model import load_model, load_tokenizer
+from transformers import Trainer
 
 
 if TYPE_CHECKING:
     from transformers import Seq2SeqTrainingArguments, TrainerCallback
 
-    from ...hparams import DataArguments, FinetuningArguments, ModelArguments
+    from ..hparams import DataArguments, FinetuningArguments, ModelArguments
 
 logger = logging.get_logger(__name__)
 
@@ -50,10 +49,9 @@ def run_pt(
     data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=False)
 
     # Initialize our Trainer
-    trainer = CustomTrainer(
+    trainer = Trainer(
         model=model,
         args=training_args,
-        finetuning_args=finetuning_args,
         data_collator=data_collator,
         callbacks=callbacks,
         **dataset_module,
@@ -84,3 +82,25 @@ def run_pt(
 
     # Create model card
     create_modelcard_and_push(trainer, model_args, data_args, training_args, finetuning_args)
+
+def create_modelcard_and_push(
+    trainer: "Trainer",
+    model_args: "ModelArguments",
+    data_args: "DataArguments",
+    training_args: "Seq2SeqTrainingArguments",
+    finetuning_args: "FinetuningArguments",
+) -> None:
+    kwargs = {
+        "tasks": "text-generation",
+        "finetuned_from": model_args.model_name_or_path,
+        "tags": ["only-pt", finetuning_args.finetuning_type],
+    }
+    if data_args.dataset is not None:
+        kwargs["dataset"] = data_args.dataset
+
+    if not training_args.do_train:
+        pass
+    elif training_args.push_to_hub:
+        trainer.push_to_hub(**kwargs)
+    else:
+        trainer.create_model_card(license="MIT License", **kwargs)  # prevent from connecting to hub
