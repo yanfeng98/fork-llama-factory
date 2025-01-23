@@ -14,17 +14,22 @@
 
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
+import math
 import torch
 
 from .extras import logging
+from .extras.ploting import plot_loss
 from .hparams import get_infer_args, get_train_args
+from .data import get_dataset
 from .model import load_model, load_tokenizer
 from .callbacks import LogCallback
-from .train.train import run_pt
+from transformers import Trainer
+from transformers import DataCollatorForLanguageModeling
 
 
 if TYPE_CHECKING:
-    from transformers import TrainerCallback
+    from transformers import Seq2SeqTrainingArguments, TrainerCallback
+    from .hparams import DataArguments, FinetuningArguments, ModelArguments
 
 
 logger = logging.get_logger(__name__)
@@ -35,6 +40,79 @@ def run_exp(args: Optional[Dict[str, Any]] = None, callbacks: List["TrainerCallb
     model_args, data_args, training_args, finetuning_args = get_train_args(args)
     logger.info(f"Training/evaluation parameters:\n{training_args}")
     run_pt(model_args, data_args, training_args, finetuning_args, callbacks)
+
+def run_pt(
+    model_args: "ModelArguments",
+    data_args: "DataArguments",
+    training_args: "Seq2SeqTrainingArguments",
+    finetuning_args: "FinetuningArguments",
+    callbacks: Optional[List["TrainerCallback"]] = None,
+):
+    tokenizer_module = load_tokenizer(model_args)
+    tokenizer = tokenizer_module["tokenizer"]
+    if tokenizer.pad_token_id is None:
+        tokenizer.pad_token = tokenizer.eos_token
+        logger.info_rank0(f"Add pad token: {tokenizer.pad_token}")
+    dataset_module = get_dataset(model_args, data_args, training_args, tokenizer)
+    model = load_model(tokenizer, model_args, finetuning_args, training_args.do_train)
+    data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=False)
+
+    # Initialize our Trainer
+    trainer = Trainer(
+        model=model,
+        args=training_args,
+        data_collator=data_collator,
+        callbacks=callbacks,
+        **dataset_module,
+        **tokenizer_module,
+    )
+
+    # Training
+    if training_args.do_train:
+        train_result = trainer.train(resume_from_checkpoint=training_args.resume_from_checkpoint)
+        trainer.save_model()
+        trainer.log_metrics("train", train_result.metrics)
+        trainer.save_metrics("train", train_result.metrics)
+        trainer.save_state()
+        if trainer.is_world_process_zero() and finetuning_args.plot_loss:
+            plot_loss(training_args.output_dir, keys=["loss", "eval_loss"])
+
+    # Evaluation
+    if training_args.do_eval:
+        metrics = trainer.evaluate(metric_key_prefix="eval")
+        try:
+            perplexity = math.exp(metrics["eval_loss"])
+        except OverflowError:
+            perplexity = float("inf")
+
+        metrics["perplexity"] = perplexity
+        trainer.log_metrics("eval", metrics)
+        trainer.save_metrics("eval", metrics)
+
+    # Create model card
+    create_modelcard_and_push(trainer, model_args, data_args, training_args, finetuning_args)
+
+def create_modelcard_and_push(
+    trainer: "Trainer",
+    model_args: "ModelArguments",
+    data_args: "DataArguments",
+    training_args: "Seq2SeqTrainingArguments",
+    finetuning_args: "FinetuningArguments",
+) -> None:
+    kwargs = {
+        "tasks": "text-generation",
+        "finetuned_from": model_args.model_name_or_path,
+        "tags": ["only-pt", finetuning_args.finetuning_type],
+    }
+    if data_args.dataset is not None:
+        kwargs["dataset"] = data_args.dataset
+
+    if not training_args.do_train:
+        pass
+    elif training_args.push_to_hub:
+        trainer.push_to_hub(**kwargs)
+    else:
+        trainer.create_model_card(license="MIT License", **kwargs)  # prevent from connecting to hub
 
 
 def export_model(args: Optional[Dict[str, Any]] = None) -> None:
