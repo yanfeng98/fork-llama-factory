@@ -22,9 +22,9 @@ from typing import TYPE_CHECKING, Any, Dict, Optional
 from transformers import TrainerCallback
 from typing_extensions import override
 
-from ..extras import logging
-from ..extras.constants import TRAINER_LOG
-from ..extras.misc import get_peak_memory
+from .extras import logging
+from .extras.constants import TRAINER_LOG
+from .extras.misc import get_peak_memory
 
 if TYPE_CHECKING:
     from transformers import TrainerControl, TrainerState, TrainingArguments

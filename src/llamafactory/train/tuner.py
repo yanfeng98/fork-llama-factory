@@ -19,7 +19,7 @@ import torch
 from ..extras import logging
 from ..hparams import get_infer_args, get_train_args
 from ..model import load_model, load_tokenizer
-from .callbacks import LogCallback
+from ..callbacks import LogCallback
 from .pt import run_pt
 
 
