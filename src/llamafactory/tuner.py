@@ -16,11 +16,11 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 import torch
 
-from ..extras import logging
-from ..hparams import get_infer_args, get_train_args
-from ..model import load_model, load_tokenizer
-from ..callbacks import LogCallback
-from .train import run_pt
+from .extras import logging
+from .hparams import get_infer_args, get_train_args
+from .model import load_model, load_tokenizer
+from .callbacks import LogCallback
+from .train.train import run_pt
 
 
 if TYPE_CHECKING:
