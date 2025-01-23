@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from llamafactory.tuner import run_exp
+from llamafactory.train import run_exp
 
 
 def main():

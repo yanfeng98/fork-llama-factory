@@ -22,7 +22,7 @@ from . import launcher
 from .extras import logging
 from .extras.env import VERSION, print_env
 from .extras.misc import get_device_count
-from .tuner import export_model, run_exp
+from .train import export_model, run_exp
 
 
 USAGE = (
