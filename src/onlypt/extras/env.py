@@ -23,7 +23,7 @@ import trl
 from transformers.utils import is_torch_cuda_available
 
 
-VERSION = "0.9.2.dev0"
+VERSION = "0.0.1"
 
 
 def print_env() -> None:
