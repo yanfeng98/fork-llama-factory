@@ -1,10 +1,10 @@
-# Copyright 2024 the LlamaFactory team.
+# Copyright 2024 luyanfeng
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
+# Licensed under the MIT License, (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+#     http://opensource.org/licenses/MIT
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -20,7 +20,7 @@ from setuptools import find_packages, setup
 
 
 def get_version() -> str:
-    with open(os.path.join("src", "llamafactory", "extras", "env.py"), encoding="utf-8") as f:
+    with open(os.path.join("src", "onlypt", "extras", "env.py"), encoding="utf-8") as f:
         file_content = f.read()
         pattern = r"{}\W*=\W*\"([^\"]+)\"".format("VERSION")
         (version,) = re.findall(pattern, file_content)
@@ -35,9 +35,9 @@ def get_requires() -> List[str]:
 
 
 def get_console_scripts() -> List[str]:
-    console_scripts = ["llamafactory-cli = llamafactory.cli:main"]
+    console_scripts = ["pt-cli = onlypt.cli:main"]
     if os.environ.get("ENABLE_SHORT_CONSOLE", "1").lower() in ["true", "1"]:
-        console_scripts.append("lmf = llamafactory.cli:main")
+        console_scripts.append("pt = onlypt.cli:main")
 
     return console_scripts
 
@@ -48,24 +48,21 @@ extra_require = {
     "bitsandbytes": ["bitsandbytes>=0.39.0"],
     "hqq": ["hqq"],
     "eetq": ["eetq"],
-    "modelscope": ["modelscope"],
-    "openmind": ["openmind"],
-    "dev": ["pre-commit", "ruff", "pytest"],
 }
 
 
 def main():
     setup(
-        name="llamafactory",
+        name="onlypt",
         version=get_version(),
-        author="hiyouga",
-        author_email="hiyouga" "@" "buaa.edu.cn",
-        description="Easy-to-use LLM fine-tuning framework",
+        author="luyanfeng",
+        author_email="luyanfeng_nlp" "@" "qq.com",
+        description="Easy-to-use LLM (continuous) pre-training framework",
         long_description=open("README.md", encoding="utf-8").read(),
         long_description_content_type="text/markdown",
-        keywords=["LLaMA", "BLOOM", "Falcon", "LLM", "ChatGPT", "transformer", "pytorch", "deep learning"],
-        license="Apache 2.0 License",
-        url="https://github.com/hiyouga/LLaMA-Factory",
+        keywords=["LLaMA", "Qwen", "LLM", "ChatGPT", "transformer", "pytorch", "deep learning"],
+        license="MIT License",
+        url="https://github.com/yanfeng98/fork-llama-factory/tree/pt-241126",
         package_dir={"": "src"},
         packages=find_packages("src"),
         python_requires=">=3.8.0",
@@ -77,7 +74,7 @@ def main():
             "Intended Audience :: Developers",
             "Intended Audience :: Education",
             "Intended Audience :: Science/Research",
-            "License :: OSI Approved :: Apache Software License",
+            "License :: OSI Approved :: MIT License",
             "Operating System :: OS Independent",
             "Programming Language :: Python :: 3",
             "Programming Language :: Python :: 3.8",

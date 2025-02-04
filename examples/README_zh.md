@@ -16,24 +16,24 @@
 #### （增量）预训练
 
 ```bash
-CUDA_VISIBLE_DEVICES=0 llamafactory-cli train examples/train_lora/qwen_lora_pt.yaml
+CUDA_VISIBLE_DEVICES=0 pt train examples/train_lora/qwen_lora_pt.yaml
 ```
 
 #### 多机指令监督微调
 
 ```bash
-FORCE_TORCHRUN=1 NNODES=2 NODE_RANK=0 MASTER_ADDR=192.168.0.1 MASTER_PORT=29500 llamafactory-cli train examples/train_lora/llama3_lora_sft.yaml
-FORCE_TORCHRUN=1 NNODES=2 NODE_RANK=1 MASTER_ADDR=192.168.0.1 MASTER_PORT=29500 llamafactory-cli train examples/train_lora/llama3_lora_sft.yaml
+FORCE_TORCHRUN=1 NNODES=2 NODE_RANK=0 MASTER_ADDR=192.168.0.1 MASTER_PORT=29500 pt train examples/train_lora/llama3_lora_sft.yaml
+FORCE_TORCHRUN=1 NNODES=2 NODE_RANK=1 MASTER_ADDR=192.168.0.1 MASTER_PORT=29500 pt train examples/train_lora/llama3_lora_sft.yaml
 ```
 
 #### 使用 DeepSpeed ZeRO-3 平均分配显存
 
 ```bash
-FORCE_TORCHRUN=1 llamafactory-cli train examples/train_lora/qwen_lora_pt_ds0.yaml
+FORCE_TORCHRUN=1 pt train examples/train_lora/qwen_lora_pt_ds0.yaml
 ```
 
 ```bash
-FORCE_TORCHRUN=1 llamafactory-cli train examples/train_lora/qwen_lora_pt_ds3.yaml
+FORCE_TORCHRUN=1 pt train examples/train_lora/qwen_lora_pt_ds3.yaml
 ```
 
 ### QLoRA 微调
@@ -41,7 +41,7 @@ FORCE_TORCHRUN=1 llamafactory-cli train examples/train_lora/qwen_lora_pt_ds3.yam
 #### 基于 4/8 比特 Bitsandbytes/HQQ/EETQ 量化进行指令监督微调（推荐）
 
 ```bash
-llamafactory-cli train examples/train_qlora/qwen_lora_pt_otfq.yaml
+pt train examples/train_qlora/qwen_lora_pt_otfq.yaml
 ```
 
 ### 全参数微调
@@ -49,14 +49,14 @@ llamafactory-cli train examples/train_qlora/qwen_lora_pt_otfq.yaml
 #### 在单机上进行指令监督微调
 
 ```bash
-FORCE_TORCHRUN=1 llamafactory-cli train examples/train_full/qwen_full_pt_ds3.yaml
+FORCE_TORCHRUN=1 pt train examples/train_full/qwen_full_pt_ds3.yaml
 ```
 
 #### 在多机上进行指令监督微调
 
 ```bash
-FORCE_TORCHRUN=1 NNODES=2 RANK=0 MASTER_ADDR=192.168.0.1 MASTER_PORT=29500 llamafactory-cli train examples/train_full/llama3_full_sft_ds3.yaml
-FORCE_TORCHRUN=1 NNODES=2 RANK=1 MASTER_ADDR=192.168.0.1 MASTER_PORT=29500 llamafactory-cli train examples/train_full/llama3_full_sft_ds3.yaml
+FORCE_TORCHRUN=1 NNODES=2 RANK=0 MASTER_ADDR=192.168.0.1 MASTER_PORT=29500 pt train examples/train_full/llama3_full_sft_ds3.yaml
+FORCE_TORCHRUN=1 NNODES=2 RANK=1 MASTER_ADDR=192.168.0.1 MASTER_PORT=29500 pt train examples/train_full/llama3_full_sft_ds3.yaml
 ```
 
 ### 合并 LoRA 适配器与模型量化
@@ -66,7 +66,7 @@ FORCE_TORCHRUN=1 NNODES=2 RANK=1 MASTER_ADDR=192.168.0.1 MASTER_PORT=29500 llama
 注：请勿使用量化后的模型或 `quantization_bit` 参数来合并 LoRA 适配器。
 
 ```bash
-llamafactory-cli export examples/merge_lora/qwen_lora_pt.yaml
+pt export examples/merge_lora/qwen_lora_pt.yaml
 ```
 
 ### 杂项
