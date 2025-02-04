@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 import math
 import torch
@@ -25,11 +25,8 @@ from .model import load_model, load_tokenizer
 from .callbacks import LogCallback
 from transformers import Trainer
 from transformers import DataCollatorForLanguageModeling
-
-
-if TYPE_CHECKING:
-    from transformers import Seq2SeqTrainingArguments, TrainerCallback
-    from .hparams import DataArguments, FinetuningArguments, ModelArguments
+from transformers import Seq2SeqTrainingArguments, TrainerCallback
+from .hparams import DataArguments, FinetuningArguments, ModelArguments
 
 
 logger = logging.get_logger(__name__)

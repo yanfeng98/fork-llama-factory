@@ -60,7 +60,7 @@ def get_train_args(args: Optional[Dict[str, Any]] = None) -> _TRAIN_CLS:
     # Check arguments
 
     if training_args.parallel_mode == ParallelMode.NOT_DISTRIBUTED:
-        raise ValueError("Please launch distributed training with `llamafactory-cli` or `torchrun`.")
+        raise ValueError("Please launch distributed training with `pt-cli` or `torchrun`.")
 
     if training_args.deepspeed and training_args.parallel_mode != ParallelMode.DISTRIBUTED:
         raise ValueError("Please use `FORCE_TORCHRUN=1` to launch DeepSpeed training.")
@@ -145,7 +145,7 @@ def _parse_train_args(args: Optional[Dict[str, Any]] = None) -> _TRAIN_CLS:
     return _parse_args(parser, args)
 
 def _parse_args(parser: "HfArgumentParser", args: Optional[Dict[str, Any]] = None) -> Tuple[Any]:
-    # 3. sys.argv: ['env/bin/llamafactory-cli', 'examples/train_lora/qwen_lora_pt.yaml']
+    # 3. sys.argv: ['env/bin/pt-cli', 'examples/train_lora/qwen_lora_pt.yaml']
     # print(f"3. sys.argv: {sys.argv}\n")
     if args is not None:
         return parser.parse_dict(args)

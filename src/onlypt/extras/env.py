@@ -27,21 +27,9 @@ VERSION = "0.0.1"
 
 
 def print_env() -> None:
-    """
-    打印当前环境信息。
-    
-    Args:
-        无参数。
-    
-    Returns:
-        无返回值。
-    
-    Raises:
-        无异常。
-    
-    """
+
     info = {
-        "`llamafactory` version": VERSION,
+        "OnlyPT version": VERSION,
         "Platform": platform.platform(),
         "Python version": platform.python_version(),
         "PyTorch version": torch.__version__,
@@ -57,7 +45,7 @@ def print_env() -> None:
         info["GPU type"] = torch.cuda.get_device_name()
 
     try:
-        import deepspeed  # type: ignore
+        import deepspeed
 
         info["DeepSpeed version"] = deepspeed.__version__
     except Exception:

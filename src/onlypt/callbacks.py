@@ -17,7 +17,7 @@ import os
 import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
-from typing import TYPE_CHECKING, Any, Dict, Optional
+from typing import Any, Dict, Optional
 
 from transformers import TrainerCallback
 from typing_extensions import override
@@ -26,8 +26,7 @@ from .extras import logging
 from .extras.constants import TRAINER_LOG
 from .extras.misc import get_peak_memory
 
-if TYPE_CHECKING:
-    from transformers import TrainerControl, TrainerState, TrainingArguments
+from transformers import TrainerControl, TrainerState, TrainingArguments
 
 
 logger = logging.get_logger(__name__)
@@ -45,8 +44,6 @@ class LogCallback(TrainerCallback):
         self.elapsed_time = ""
         self.remaining_time = ""
         self.thread_pool: Optional["ThreadPoolExecutor"] = None
-        # Status
-        self.do_train = False
 
     @override
     def on_init_end(self, args: "TrainingArguments", state: "TrainerState", control: "TrainerControl", **kwargs):
@@ -61,7 +58,6 @@ class LogCallback(TrainerCallback):
     @override
     def on_train_begin(self, args: "TrainingArguments", state: "TrainerState", control: "TrainerControl", **kwargs):
         if args.should_save:
-            self.do_train = True
             self._reset(max_steps=state.max_steps)
             self._create_thread_pool(output_dir=args.output_dir)
 
@@ -97,7 +93,7 @@ class LogCallback(TrainerCallback):
             logs["throughput"] = round(state.num_input_tokens_seen / (time.time() - self.start_time), 2)
             logs["total_tokens"] = state.num_input_tokens_seen
 
-        if os.environ.get("RECORD_VRAM", "0").lower() in ["true", "1"]:
+        if os.environ.get("RECORD_VRAM", "1").lower() in ["true", "1"]:
             vram_allocated, vram_reserved = get_peak_memory()
             logs["vram_allocated"] = round(vram_allocated / (1024**3), 2)
             logs["vram_reserved"] = round(vram_reserved / (1024**3), 2)

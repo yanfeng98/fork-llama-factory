@@ -24,29 +24,28 @@ from .extras.env import VERSION, print_env
 from .extras.misc import get_device_count
 from .train import export_model, run_exp
 
-
 USAGE = (
-    "-" * 70
+    "-" * 60
     + "\n"
-    + "| Usage:                                                             |\n"
-    + "|   llamafactory-cli help: show this message                         |\n"
-    + "|   llamafactory-cli version: show version info                      |\n"
-    + "|   llamafactory-cli env -h: show environment info                   |\n"
-    + "|   llamafactory-cli train -h: train models                          |\n"
-    + "|   llamafactory-cli export -h: merge LoRA adapters and export model |\n"
-    + "-" * 70
+    + "| Usage:                                                   |\n"
+    + "|   pt-cli help: show this message                         |\n"
+    + "|   pt-cli version: show version info                      |\n"
+    + "|   pt-cli env: show environment info                      |\n"
+    + "|   pt-cli train -h: train models                          |\n"
+    + "|   pt-cli export -h: merge LoRA adapters and export model |\n"
+    + "-" * 60
 )
 
 WELCOME = (
-    "-" * 58
+    "-" * 80
     + "\n"
-    + f"| Welcome to LLaMA Factory, version {VERSION}"
-    + " " * (21 - len(VERSION))
+    + f"| Welcome to onlypt, version {VERSION}"
+    + " " * (50 - len(VERSION))
     + "|\n|"
-    + " " * 56
+    + " " * 78
     + "|\n"
-    + "| Project page: https://github.com/hiyouga/LLaMA-Factory |\n"
-    + "-" * 58
+    + "| Project page: https://github.com/yanfeng98/fork-llama-factory/tree/pt-241126 |\n"
+    + "-" * 80
 )
 
 logger = logging.get_logger(__name__)
@@ -62,15 +61,17 @@ class Command(str, Enum):
 
 
 def main():
-    # 1. sys.argv: ['env/bin/llamafactory-cli', 'train', 'examples/train_lora/qwen_lora_pt.yaml']
+    # 1. sys.argv: ['env/bin/pt-cli', 'train', 'examples/train_lora/qwen_lora_pt.yaml']
     # print(f"1. sys.argv: {sys.argv}\n")
     command = sys.argv.pop(1) if len(sys.argv) != 1 else Command.HELP
-    # 2. sys.argv: ['env/bin/llamafactory-cli', 'examples/train_lora/qwen_lora_pt.yaml']
+    # 2. sys.argv: ['env/bin/pt-cli', 'examples/train_lora/qwen_lora_pt.yaml']
     # print(f"2. sys.argv: {sys.argv}\n")
-    if command == Command.ENV:
+    if command == Command.HELP:
+        print(USAGE)
+    elif command == Command.VER:
+        print(WELCOME)
+    elif command == Command.ENV:
         print_env()
-    elif command == Command.EXPORT:
-        export_model()
     elif command == Command.TRAIN:
         force_torchrun = os.getenv("FORCE_TORCHRUN", "0").lower() in ["true", "1"]
         if force_torchrun or get_device_count() > 1:
@@ -96,9 +97,7 @@ def main():
             sys.exit(process.returncode)
         else:
             run_exp()
-    elif command == Command.VER:
-        print(WELCOME)
-    elif command == Command.HELP:
-        print(USAGE)
+    elif command == Command.EXPORT:
+        export_model()
     else:
         raise NotImplementedError(f"Unknown command: {command}.")
