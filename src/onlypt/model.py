@@ -13,12 +13,9 @@
 # limitations under the License.
 
 import math
-import inspect
 from enum import Enum, unique
-from types import MethodType
 from contextlib import nullcontext
-from functools import WRAPPER_ASSIGNMENTS, partial, wraps
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union, TypedDict, Callable
+from typing import Any, Dict, List, Optional, Tuple, TypedDict
 
 import torch
 from transformers.utils import (
@@ -32,6 +29,7 @@ from transformers.modeling_utils import is_fsdp_enabled
 from transformers.utils.versions import require_version
 from transformers.utils import is_flash_attn_2_available, is_torch_sdpa_available
 from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
+from transformers import PretrainedConfig, PreTrainedTokenizer, ProcessorMixin
 
 from peft import LoraConfig, LoraModel, PeftModel, TaskType, get_peft_model
 
@@ -39,12 +37,7 @@ from .extras import logging
 from .extras.constants import LAYERNORM_NAMES
 from .extras.misc import get_current_device
 from .extras.misc import count_parameters
-
-
-if TYPE_CHECKING:
-    from transformers import PretrainedConfig, PreTrainedTokenizer, ProcessorMixin
-
-    from .hparams import FinetuningArguments, ModelArguments
+from .hparams import FinetuningArguments, ModelArguments
 
 _is_fp16_available = is_torch_cuda_available()
 try:

@@ -1,10 +1,10 @@
-# Copyright 2024 the LlamaFactory team.
+# Copyright 2024 luyanfeng
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
+# Licensed under the MIT License, (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+#     http://opensource.org/licenses/MIT
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,20 +17,16 @@ import json
 from itertools import chain
 from functools import partial
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Callable, Tuple, Any, Dict, List, Literal, Optional, Sequence, Union, TypedDict
+from typing import Callable, Tuple, Any, Dict, List, Literal, Optional, Sequence, Union, TypedDict
 
 import numpy as np
+from datasets import Dataset, IterableDataset
 from datasets import DatasetDict, load_dataset, concatenate_datasets, interleave_datasets
+from transformers import PreTrainedTokenizer, Seq2SeqTrainingArguments
 
 from .extras import logging
 from .extras.constants import FILEEXT2TYPE, DATA_CONFIG
-
-
-if TYPE_CHECKING:
-    from datasets import Dataset, IterableDataset
-    from transformers import PreTrainedTokenizer, Seq2SeqTrainingArguments
-
-    from .hparams import DataArguments, ModelArguments
+from .hparams import DataArguments, ModelArguments
 
 logger = logging.get_logger(__name__)
 
@@ -223,7 +219,7 @@ def _load_single_dataset(
         dataset = dataset.select(indexes)
         logger.info_rank0(f"Sampled {dataset_attr.num_samples} examples from dataset {dataset_attr}.")
 
-    if data_args.max_samples is not None:  # truncate dataset
+    if data_args.max_samples is not None:
         max_samples = min(data_args.max_samples, len(dataset))
         dataset = dataset.select(range(max_samples))
 
