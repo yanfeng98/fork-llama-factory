@@ -12,11 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from dataclasses import dataclass, field, fields
+from dataclasses import dataclass, field
 from typing import Any, Dict, Literal, Optional, Union
 
 import torch
-from typing_extensions import Self
 
 
 @dataclass
@@ -139,10 +138,6 @@ class ModelArguments(QuantizationArguments, ExportArguments):
         default="offload",
         metadata={"help": "Path to offload model weights."},
     )
-    use_cache: bool = field(
-        default=True,
-        metadata={"help": "Whether or not to use KV cache in generation."},
-    )
     infer_dtype: Literal["auto", "float16", "bfloat16", "float32"] = field(
         default="auto",
         metadata={"help": "Data type for model weights and activations at inference."},
@@ -150,14 +145,6 @@ class ModelArguments(QuantizationArguments, ExportArguments):
     hf_hub_token: Optional[str] = field(
         default=None,
         metadata={"help": "Auth token to log in with Hugging Face Hub."},
-    )
-    ms_hub_token: Optional[str] = field(
-        default=None,
-        metadata={"help": "Auth token to log in with ModelScope Hub."},
-    )
-    om_hub_token: Optional[str] = field(
-        default=None,
-        metadata={"help": "Auth token to log in with Modelers Hub."},
     )
     print_param_status: bool = field(
         default=False,

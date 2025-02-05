@@ -1,13 +1,10 @@
-# Copyright 2024 HuggingFace Inc. and the LlamaFactory team.
+# Copyright 2024 luyanfeng
 #
-# This code is inspired by the HuggingFace's transformers library.
-# https://github.com/huggingface/transformers/blob/v4.40.0/examples/pytorch/language-modeling/run_clm.py
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
+# Licensed under the MIT License, (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+#     http://opensource.org/licenses/MIT
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -77,10 +74,6 @@ class DataArguments:
         default=None,
         metadata={"help": "For debugging purposes, truncate the number of examples for each dataset."},
     )
-    eval_num_beams: Optional[int] = field(
-        default=None,
-        metadata={"help": "Number of beams to use for evaluation. This argument will be passed to `model.generate`"},
-    )
     val_size: float = field(
         default=0.0,
         metadata={"help": "Size of the development set, should be an integer or a float in range `[0,1)`."},
@@ -107,9 +100,6 @@ class DataArguments:
 
             if self.eval_dataset is not None and len(self.eval_dataset) != len(self.interleave_probs):
                 raise ValueError("The length of eval dataset and interleave probs should be identical.")
-
-        if self.streaming and self.val_size > 1e-6 and self.val_size < 1:
-            raise ValueError("Streaming mode should have an integer val size.")
 
         if self.streaming and self.max_samples is not None:
             raise ValueError("`max_samples` is incompatible with `streaming`.")

@@ -59,12 +59,6 @@ def get_train_args(args: Optional[Dict[str, Any]] = None) -> _TRAIN_CLS:
 
     # Check arguments
 
-    if training_args.parallel_mode == ParallelMode.NOT_DISTRIBUTED:
-        raise ValueError("Please launch distributed training with `pt-cli` or `torchrun`.")
-
-    if training_args.deepspeed and training_args.parallel_mode != ParallelMode.DISTRIBUTED:
-        raise ValueError("Please use `FORCE_TORCHRUN=1` to launch DeepSpeed training.")
-
     if finetuning_args.pure_bf16:
         if not is_torch_bf16_gpu_available():
             raise ValueError("This device does not support `pure_bf16`.")
@@ -74,17 +68,6 @@ def get_train_args(args: Optional[Dict[str, Any]] = None) -> _TRAIN_CLS:
 
     if finetuning_args.plot_loss:
         require_version("matplotlib", "To fix: pip install matplotlib")
-
-    if (
-        training_args.do_train
-        and finetuning_args.finetuning_type == "lora"
-        and model_args.quantization_bit is None
-        and model_args.resize_vocab
-        and finetuning_args.additional_target is None
-    ):
-        logger.warning_rank0(
-            "Remember to add embedding layers to `additional_target` to make the added tokens trainable."
-        )
 
     if training_args.do_train and model_args.quantization_bit is not None and (not model_args.upcast_layernorm):
         logger.warning_rank0("We recommend enable `upcast_layernorm` in quantized training.")
