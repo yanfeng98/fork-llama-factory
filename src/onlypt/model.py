@@ -108,12 +108,10 @@ def load_model(
     init_kwargs["config"] = config
     init_kwargs["pretrained_model_name_or_path"] = model_args.model_name_or_path
 
-    load_class = AutoModelForCausalLM
-
     if model_args.train_from_scratch:
-        model = load_class.from_config(config, trust_remote_code=True)
+        model = AutoModelForCausalLM.from_config(config, trust_remote_code=True)
     else:
-        model = load_class.from_pretrained(**init_kwargs)
+        model = AutoModelForCausalLM.from_pretrained(**init_kwargs)
 
     patch_model(model, tokenizer, model_args, is_trainable)
 
@@ -323,7 +321,7 @@ def patch_model(
     print_attn_implementation(model.config)
 
     try:
-        model.add_model_tags(["only-pt"])
+        model.add_model_tags(["onlypt"])
     except Exception:
         logger.warning_rank0("Cannot properly tag the model.")
 
