@@ -21,8 +21,6 @@ from typing import Tuple
 import torch
 from transformers.utils import (
     is_torch_cuda_available,
-    is_torch_mps_available,
-    is_torch_npu_available,
     is_torch_xpu_available,
 )
 from transformers.utils.versions import require_version
@@ -107,11 +105,3 @@ def get_peak_memory() -> Tuple[int, int]:
         return torch.cuda.max_memory_allocated(), torch.cuda.max_memory_reserved()
     else:
         return 0, 0
-
-
-def use_modelscope() -> bool:
-    return os.environ.get("USE_MODELSCOPE_HUB", "0").lower() in ["true", "1"]
-
-
-def use_openmind() -> bool:
-    return os.environ.get("USE_OPENMIND_HUB", "0").lower() in ["true", "1"]
