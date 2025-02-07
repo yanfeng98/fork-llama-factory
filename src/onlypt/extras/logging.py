@@ -47,14 +47,9 @@ def get_logger(name: Optional[str] = None) -> "_Logger":
     r"""
     Returns a logger with the specified name. It it not supposed to be accessed externally.
     """
-    if name is None:
-        name = _get_library_name()
 
     _configure_library_root_logger()
     return logging.getLogger(name)
-
-def _get_library_name() -> str:
-    return __name__.split(".")[0]
 
 def _configure_library_root_logger() -> None:
     r"""
@@ -72,26 +67,10 @@ def _configure_library_root_logger() -> None:
         )
         _default_handler = logging.StreamHandler(sys.stdout)
         _default_handler.setFormatter(formatter)
-        library_root_logger = _get_library_root_logger()
+        library_root_logger = logging.getLogger(__name__.split(".")[0])
         library_root_logger.addHandler(_default_handler)
-        library_root_logger.setLevel(_get_default_logging_level())
+        library_root_logger.setLevel(_default_log_level)
         library_root_logger.propagate = False
-
-def _get_library_root_logger() -> "_Logger":
-    return logging.getLogger(_get_library_name())
-
-def _get_default_logging_level() -> "logging._Level":
-    r"""
-    Returns the default logging level.
-    """
-    env_level_str = os.environ.get("LLAMAFACTORY_VERBOSITY", None)
-    if env_level_str:
-        if env_level_str.upper() in logging._nameToLevel:
-            return logging._nameToLevel[env_level_str.upper()]
-        else:
-            raise ValueError(f"Unknown logging level: {env_level_str}.")
-
-    return _default_log_level
 
 
 def info_rank0(self: "logging.Logger", *args, **kwargs) -> None:
