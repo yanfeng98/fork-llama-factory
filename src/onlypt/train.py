@@ -47,9 +47,24 @@ def run_pt(
 ):
     tokenizer_module = load_tokenizer(model_args)
     tokenizer = tokenizer_module["tokenizer"]
+
     if tokenizer.pad_token_id is None:
         tokenizer.pad_token = tokenizer.eos_token
         logger.info_rank0(f"Add pad token: {tokenizer.pad_token}")
+
+    if data_args.fim_rate > 0:
+        # Add the new FIM tokens to the tokenizer and resize model's vocab embeddings
+        special_tokens = [data_args.fim_prefix_token, data_args.fim_middle_token, data_args.fim_suffix_token]
+
+        origin_tokenizer: int = len(tokenizer)
+        # Add the new tokens to the tokenizer
+        tokenizer.add_tokens(special_tokens)
+        now_tokenizer: int = len(tokenizer)
+
+        if (now_tokenizer - origin_tokenizer) > 0 and not model_args.resize_vocab:
+            model_args.resize_vocab = True
+            logger.warning_rank0("New tokens have been added, changed `resize_vocab` to True.")
+
     dataset_module = get_dataset(model_args, data_args, training_args, tokenizer)
     model = load_model(tokenizer, model_args, finetuning_args, training_args.do_train)
     data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=False)

@@ -30,6 +30,9 @@ from .hparams import DataArguments, ModelArguments
 
 logger = logging.get_logger(__name__)
 
+# Set a numpy random state for FIM transformations
+np_rng = np.random.RandomState(seed=42)
+
 @dataclass
 class DatasetAttr:
     r"""
@@ -333,22 +336,76 @@ def get_preprocess_and_print_func(
 def preprocess_pretrain_dataset(
     examples: Dict[str, List[Any]], tokenizer: "PreTrainedTokenizer", data_args: "DataArguments"
 ) -> Dict[str, List[Any]]:
-    # build grouped texts with format `X1 X2 X3 ...` if packing is enabled
-    eos_token = "<|end_of_text|>" if data_args.template == "llama3" else tokenizer.eos_token
-    text_examples = [content + eos_token for content in examples["content"]]
+    tokenized_examples = tokenizer(examples["content"], add_special_tokens=False)
 
-    if not data_args.packing:
-        result = tokenizer(text_examples, add_special_tokens=False, truncation=True, max_length=data_args.cutoff_len)
-    else:
-        tokenized_examples = tokenizer(text_examples, add_special_tokens=False)
-        concatenated_examples = {k: list(chain(*tokenized_examples[k])) for k in tokenized_examples.keys()}
-        total_length = len(concatenated_examples[list(concatenated_examples.keys())[0]])
-        block_size = data_args.cutoff_len
-        total_length = (total_length // block_size) * block_size
-        result = {
-            k: [t[i : i + block_size] for i in range(0, total_length, block_size)]
-            for k, t in concatenated_examples.items()
-        }
+    if data_args.fim_rate > 0:
+        # Get the FIM-specific token ids
+        prefix_tok_id = tokenizer.convert_tokens_to_ids(data_args.fim_prefix_token)
+        middle_tok_id = tokenizer.convert_tokens_to_ids(data_args.fim_middle_token)
+        suffix_tok_id = tokenizer.convert_tokens_to_ids(data_args.fim_suffix_token)
+
+        # The two functions below perform the FIM transformation on the data (either PSM or SPM or PSM+SPM)
+        # Don't call fim_transform directly in .map()
+        # Adapted from https://github.com/loubnabnl/santacoder-finetuning/blob/main/fim.py#L22C13-L83
+        def fim_transform(example):
+            """
+            This function performs FIM transformation on a single example (list of tokens)
+            """
+            if np_rng.binomial(1, data_args.fim_rate):
+                boundaries = sorted(np_rng.randint(low=0, high=len(example) + 1, size=2))
+    
+                prefix = example[: boundaries[0]]
+                middle = example[boundaries[0] : boundaries[1]]
+                suffix = example[boundaries[1] :]
+    
+                if np_rng.binomial(1, data_args.fim_spm_rate):
+                    # Apply Suffix-Prefix-Middle (SPM) transformation
+                    transformed_example = [prefix_tok_id, suffix_tok_id] + suffix + [middle_tok_id] + prefix + middle
+                else:
+                    # Apply Prefix-Suffix-Middle (PSM) transformation
+                    transformed_example = [prefix_tok_id] + prefix + [suffix_tok_id] + suffix + [middle_tok_id] + middle
+            else:
+                transformed_example = example
+    
+            return transformed_example
+
+        # Below function is the one you are supposed to call in the .map() function
+        def apply_fim(examples):
+            """
+            Apply FIM transformation to a batch of examples
+            """
+            fim_transform_ids = [fim_transform(ids) for ids in examples["input_ids"]]
+            examples["input_ids"] = fim_transform_ids
+            # If your application requires custom attention mask, please adjust this function's below line.
+            # Since FIM transformation increases the number of tokens in input_ids and labels
+            # but leaves the number of tokens unchanged in attention_masks which would cause problems
+            examples["attention_mask"] = [[1] * len(mask) for mask in examples["input_ids"]]
+            return examples
+        
+        tokenized_examples = apply_fim(examples=tokenized_examples)
+
+    eos_token = "<|end_of_text|>" if data_args.template == "llama3" else tokenizer.eos_token
+    eos_tok_id = tokenizer.convert_tokens_to_ids(eos_token)
+    
+    def add_eos(examples):
+        """
+        add eos token
+        """
+        transform_ids = [ids + [eos_tok_id] for ids in examples["input_ids"]]
+        examples["input_ids"] = transform_ids
+        examples["attention_mask"] = [[1] * len(mask) for mask in examples["input_ids"]]
+        return examples
+    
+    tokenized_examples = add_eos(examples=tokenized_examples)
+
+    concatenated_examples = {k: list(chain(*tokenized_examples[k])) for k in tokenized_examples.keys()}
+    total_length = len(concatenated_examples[list(concatenated_examples.keys())[0]])
+    block_size = data_args.cutoff_len
+    total_length = (total_length // block_size) * block_size
+    result = {
+        k: [t[i : i + block_size] for i in range(0, total_length, block_size)]
+        for k, t in concatenated_examples.items()
+    }
 
     return result
 

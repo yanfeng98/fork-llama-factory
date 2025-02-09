@@ -78,9 +78,38 @@ class DataArguments:
         default=0.0,
         metadata={"help": "Size of the development set, should be an integer or a float in range `[0,1)`."},
     )
-    packing: Optional[bool] = field(
-        default=None,
-        metadata={"help": "Enable sequences packing in training. Will automatically enable in pre-training."},
+    fim_rate: Optional[float] = field(
+        default=0.6,
+        metadata={
+            "help": (
+                "Optional probability with which the FIM transformation is applied to the example. "
+                "Default is 0.6. A rate of 1.0 means every example will undergo FIM transformation, "
+                "while a rate of 0.0 means no example will."
+            )
+        },
+    )
+    fim_spm_rate: Optional[float] = field(
+        default=0.5,
+        metadata={
+            "help": (
+                "Within the examples undergoing FIM transformation, this rate determines the probability "
+                "of applying the Sentence Permutation Mode (SPM). "
+                "Default is 0.5. A rate of 1.0 means all FIM transformations will use SPM, "
+                "while a rate of 0.0 means none will."
+            )
+        },
+    )
+    fim_prefix_token: Optional[str] = field(
+        default="<|fim_prefix|>",
+        metadata={"help": ("Fill-in-Middle Prefix token. Defaults to '<|fim_prefix|>'.")},
+    )
+    fim_middle_token: Optional[str] = field(
+        default="<|fim_middle|>",
+        metadata={"help": ("Fill-in-Middle Middle token. Defaults to '<|fim_middle|>'.")},
+    )
+    fim_suffix_token: Optional[str] = field(
+        default="<|fim_suffix|>",
+        metadata={"help": ("Fill-in-Middle Suffix token. Defaults to '<|fim_suffix|>'.")},
     )
 
     def __post_init__(self):

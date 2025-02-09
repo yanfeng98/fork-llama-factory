@@ -106,7 +106,6 @@ def get_train_args(args: Optional[Dict[str, Any]] = None) -> _TRAIN_CLS:
 
     model_args.device_map = {"": get_current_device()}
     model_args.model_max_length = data_args.cutoff_len
-    data_args.packing = data_args.packing if data_args.packing is not None else True
 
     # Log on each process the small summary
     logger.info(
