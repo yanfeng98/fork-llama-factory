@@ -3158,12 +3158,13 @@ register_model_group(
             DownloadSource.DEFAULT: "Tele-AI/TeleChat2-7B",
             DownloadSource.MODELSCOPE: "TeleAI/TeleChat2-7B",
         },
-        "TeleChat2-35B-Chat": {
-            DownloadSource.MODELSCOPE: "TeleAI/TeleChat2-35B-Nov",
-        },
         "TeleChat2-115B-Chat": {
             DownloadSource.DEFAULT: "Tele-AI/TeleChat2-115B",
             DownloadSource.MODELSCOPE: "TeleAI/TeleChat2-115B",
+        },
+        "TeleChat2.5-35B-Chat": {
+            DownloadSource.DEFAULT: "Tele-AI/TeleChat2.5-35B",
+            DownloadSource.MODELSCOPE: "TeleAI/TeleChat2-35B-Nov",
         },
     },
     template="telechat2",
