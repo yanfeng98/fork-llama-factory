@@ -13,14 +13,14 @@
 # limitations under the License.
 
 import time
-from enum import Enum, unique
+from enum import StrEnum, unique
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
 
 @unique
-class Role(str, Enum):
+class Role(StrEnum):
     USER = "user"
     ASSISTANT = "assistant"
     SYSTEM = "system"
@@ -29,7 +29,7 @@ class Role(str, Enum):
 
 
 @unique
-class Finish(str, Enum):
+class Finish(StrEnum):
     STOP = "stop"
     LENGTH = "length"
     TOOL = "tool_calls"

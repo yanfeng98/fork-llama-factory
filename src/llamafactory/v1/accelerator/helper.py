@@ -27,7 +27,7 @@ Including:
 import os
 from collections.abc import Callable
 from contextlib import contextmanager
-from enum import Enum, unique
+from enum import StrEnum, unique
 from functools import lru_cache, wraps
 from typing import Optional
 
@@ -39,7 +39,7 @@ from ..utils.types import ProcessGroup, Tensor, TensorLike
 
 
 @unique
-class DeviceType(str, Enum):
+class DeviceType(StrEnum):
     CPU = "cpu"
     CUDA = "cuda"
     META = "meta"
@@ -49,7 +49,7 @@ class DeviceType(str, Enum):
 
 
 @unique
-class ReduceOp(str, Enum):
+class ReduceOp(StrEnum):
     SUM = "sum"
     MEAN = "mean"
     MAX = "max"

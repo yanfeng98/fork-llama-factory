@@ -14,7 +14,7 @@
 
 import os
 from collections import OrderedDict, defaultdict
-from enum import Enum, unique
+from enum import StrEnum, unique
 
 from peft.utils import SAFETENSORS_WEIGHTS_NAME as SAFE_ADAPTER_WEIGHTS_NAME
 from peft.utils import WEIGHTS_NAME as ADAPTER_WEIGHTS_NAME
@@ -110,7 +110,7 @@ V_HEAD_WEIGHTS_NAME = "value_head.bin"
 V_HEAD_SAFE_WEIGHTS_NAME = "value_head.safetensors"
 
 
-class AttentionFunction(str, Enum):
+class AttentionFunction(StrEnum):
     AUTO = "auto"
     DISABLED = "disabled"
     SDPA = "sdpa"
@@ -118,21 +118,21 @@ class AttentionFunction(str, Enum):
     FA3 = "fa3"
 
 
-class EngineName(str, Enum):
+class EngineName(StrEnum):
     HF = "huggingface"
     VLLM = "vllm"
     SGLANG = "sglang"
     KT = "ktransformers"
 
 
-class DownloadSource(str, Enum):
+class DownloadSource(StrEnum):
     DEFAULT = "hf"
     MODELSCOPE = "ms"
     OPENMIND = "om"
 
 
 @unique
-class QuantizationMethod(str, Enum):
+class QuantizationMethod(StrEnum):
     r"""Borrowed from `transformers.utils.quantization_config.QuantizationMethod`."""
 
     BNB = "bnb"
@@ -146,7 +146,7 @@ class QuantizationMethod(str, Enum):
     FP8 = "fp8"
 
 
-class RopeScaling(str, Enum):
+class RopeScaling(StrEnum):
     LINEAR = "linear"
     DYNAMIC = "dynamic"
     YARN = "yarn"
@@ -1839,6 +1839,10 @@ register_model_group(
         "MiniCPM-o-2.6": {
             DownloadSource.DEFAULT: "openbmb/MiniCPM-o-2_6",
             DownloadSource.MODELSCOPE: "OpenBMB/MiniCPM-o-2_6",
+        },
+        "MiniCPM-o-4_5": {
+            DownloadSource.DEFAULT: "openbmb/MiniCPM-o-4_5",
+            DownloadSource.MODELSCOPE: "OpenBMB/MiniCPM-o-4_5",
         },
     },
     template="minicpm_o",

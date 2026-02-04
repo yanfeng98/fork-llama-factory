@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import json
-from enum import Enum, unique
+from enum import StrEnum, unique
 from typing import TYPE_CHECKING, Any, Optional, TypedDict, Union
 
 import fsspec
@@ -35,7 +35,7 @@ SLOTS = list[Union[str, set[str], dict[str, str]]]
 
 
 @unique
-class Role(str, Enum):
+class Role(StrEnum):
     USER = "user"
     ASSISTANT = "assistant"
     SYSTEM = "system"
